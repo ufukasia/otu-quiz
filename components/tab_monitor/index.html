@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tab Monitor</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    (function () {
+      "use strict";
+
+      var violated = false;
+      var violationEmitted = false;
+      var storageKey = "";
+      var currentScope = "";
+      var monitorEnabled = true;
+      var deadlineTimer = null;
+      var deadlineFiredScope = "";
+
+      function post(type, payload) {
+        var msg = Object.assign(
+          {
+            isStreamlitMessage: true,
+            type: type
+          },
+          payload || {}
+        );
+        window.parent.postMessage(msg, "*");
+      }
+
+      function setComponentValue(value) {
+        post("streamlit:setComponentValue", { value: value });
+      }
+
+      function setFrameHeight(height) {
+        post("streamlit:setFrameHeight", { height: height });
+      }
+
+      function buildScope(args) {
+        var sid = String((args && args.student_id) || "").trim();
+        var sessionId = String((args && args.quiz_session) || "").trim();
+        return sessionId + "::" + sid;
+      }
+
+      function resetScope(scope) {
+        if (deadlineTimer) {
+          window.clearTimeout(deadlineTimer);
+          deadlineTimer = null;
+        }
+        currentScope = scope;
+        storageKey = "QUIZ_TAB_VIOLATION::" + scope;
+        violated = false;
+        violationEmitted = false;
+        deadlineFiredScope = "";
+      }
+
+      function readStoredViolation() {
+        if (!storageKey) {
+          return null;
+        }
+        try {
+          var raw = window.localStorage.getItem(storageKey);
+          if (!raw) {
+            return null;
+          }
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.violated === true) {
+            return parsed;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      }
+
+      function markViolation(reason) {
+        if (!monitorEnabled || violated || !currentScope || currentScope === "::") {
+          return;
+        }
+        violated = true;
+        var payload = {
+          violated: true,
+          reason: reason,
+          timestamp: new Date().toISOString()
+        };
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(payload));
+        } catch (err) {
+          // localStorage engellenirse sadece Streamlit'e bildir.
+        }
+        if (!violationEmitted) {
+          setComponentValue(payload);
+          violationEmitted = true;
+        }
+      }
+
+      function scheduleDeadlineTick(deadlineIso, tickScope) {
+        if (deadlineTimer) {
+          window.clearTimeout(deadlineTimer);
+          deadlineTimer = null;
+        }
+
+        if (!tickScope || !deadlineIso) {
+          return;
+        }
+
+        var deadlineMs = Date.parse(deadlineIso);
+        if (!Number.isFinite(deadlineMs)) {
+          return;
+        }
+
+        var delayMs = deadlineMs - Date.now();
+        var emitTick = function () {
+          if (deadlineFiredScope === tickScope) {
+            return;
+          }
+          deadlineFiredScope = tickScope;
+          setComponentValue({
+            violated: violated,
+            deadline_reached: true,
+            deadline_iso: deadlineIso,
+            timestamp: new Date().toISOString()
+          });
+        };
+
+        if (delayMs <= 0) {
+          emitTick();
+          return;
+        }
+        if (delayMs > 6 * 60 * 60 * 1000) {
+          return;
+        }
+
+        deadlineTimer = window.setTimeout(emitTick, delayMs + 120);
+      }
+
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "hidden") {
+          markViolation("visibility_hidden");
+        }
+      });
+
+      window.addEventListener("pagehide", function () {
+        markViolation("pagehide");
+      });
+
+      window.addEventListener("message", function (event) {
+        var data = event.data;
+        if (!data || data.type !== "streamlit:render") {
+          return;
+        }
+        var args = data.args || {};
+        var nextScope = buildScope(args);
+        if (nextScope !== currentScope) {
+          resetScope(nextScope);
+        }
+        monitorEnabled = args.monitor_enabled !== false;
+        var deadlineIso = String((args && args.deadline_iso) || "").trim();
+        scheduleDeadlineTick(deadlineIso, nextScope + "::" + deadlineIso);
+
+        if (monitorEnabled && !violated) {
+          var stored = readStoredViolation();
+          if (stored) {
+            violated = true;
+            if (!violationEmitted) {
+              setComponentValue(stored);
+              violationEmitted = true;
+            }
+          }
+        }
+        setFrameHeight(0);
+      });
+
+      post("streamlit:componentReady", { apiVersion: 1 });
+      setFrameHeight(0);
+    })();
+  </script>
+</body>
+</html>
