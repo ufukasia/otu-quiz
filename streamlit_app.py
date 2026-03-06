@@ -1,8 +1,8 @@
 ﻿# Ã‡alÄ±ÅŸtÄ±rmak iÃ§in terminale ÅŸu komutu yazÄ±nÄ±z: python -m streamlit run streamlit_app.py
 """
-Streamlit tabanlı, Öğrenci numarasina göre kişiselleştirilmiş 5 soruluk quiz.
+Streamlit tabanlı, öğrenci numarası ve oturuma göre kişiselleştirilmiş 5 soruluk quiz.
 - Soru senaryolari 2-hafta-olasılık sunumundaki temalara dayanir.
-- Sayısal değerler Öğrenci numarasindan deterministik olarak üretilir.
+- Sayısal değerler öğrenci numarası ve oturumdan deterministik olarak üretilir.
 - Cevaplar mutlak (+/-) tolerans ile puanlanir.
 - Sonuçlar outputs/quiz_results.csv dosyasina kaydedilir.
 """
@@ -1009,6 +1009,104 @@ def _score_quiz_answers(
         if is_correct:
             score += 20
     return score, scored
+
+
+def _format_result_value(value: Any) -> str:
+    """Sayisal dogru cevabi kisa ve okunur bicimde yazar."""
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError):
+        return "-"
+    if not math.isfinite(normalized):
+        return "-"
+    return f"{normalized:.4f}".rstrip("0").rstrip(".")
+
+
+def _question_feedback_from_scored(scored: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Anlik puanlama sonucundan soru bazli durum ve dogru cevap listesini uretir."""
+    results: list[dict[str, Any]] = []
+    for item in scored:
+        raw_status = item.get("is_correct")
+        results.append(
+            {
+                "is_correct": bool(raw_status) if raw_status is not None else None,
+                "correct": item.get("correct"),
+            }
+        )
+    return results
+
+
+def _question_feedback_from_submission(submission: dict[str, Any], question_count: int) -> list[dict[str, Any]]:
+    """Kayitli submission satirindan soru bazli durum ve dogru cevap listesini uretir."""
+    results: list[dict[str, Any]] = []
+    for idx in range(1, question_count + 1):
+        raw = submission.get(f"q{idx}_is_correct")
+        if pd.isna(raw):
+            is_correct = None
+        elif isinstance(raw, str):
+            normalized = raw.strip().lower()
+            if normalized in {"", "nan", "none", "null"}:
+                is_correct = None
+            else:
+                is_correct = normalized in {"1", "true", "yes"}
+        else:
+            is_correct = bool(raw)
+
+        correct_value = submission.get(f"q{idx}_correct")
+        if pd.isna(correct_value):
+            correct_value = None
+        results.append(
+            {
+                "is_correct": is_correct,
+                "correct": correct_value,
+            }
+        )
+    return results
+
+
+def _question_feedback_line(idx: int, feedback: dict[str, Any]) -> str:
+    """Soru bazli sonucu ve dogru cevabi tek satirda yazar."""
+    is_correct = feedback.get("is_correct")
+    if is_correct is True:
+        status = tr("Doğru", "Correct")
+    elif is_correct is False:
+        status = tr("Yanlış", "Wrong")
+    else:
+        status = "-"
+    correct_value = _format_result_value(feedback.get("correct"))
+    return tr(
+        "S{idx}: {status} | Doğru cevap: {correct}",
+        "Q{idx}: {status} | Correct answer: {correct}",
+        idx=idx,
+        status=status,
+        correct=correct_value,
+    )
+
+
+def render_submission_score_summary(
+    score: int | float,
+    question_feedback: list[dict[str, Any]],
+    *,
+    recorded: bool = False,
+) -> None:
+    """Puan ile soru bazli durumlari ve dogru cevaplari yan yana gosterir."""
+    score_value = int(float(score))
+    score_label = (
+        tr("Kayıtlı puanınız: {score}/100", "Recorded score: {score}/100", score=score_value)
+        if recorded
+        else tr("Toplam puan: {score}/100", "Total score: {score}/100", score=score_value)
+    )
+
+    score_col, status_col = st.columns([1.15, 2.85], gap="medium")
+    with score_col:
+        if recorded:
+            st.info(score_label)
+        else:
+            st.success(score_label)
+    with status_col:
+        st.markdown(f"**{tr('Soru Sonuçları', 'Question Results')}**")
+        for idx, feedback in enumerate(question_feedback, start=1):
+            st.write(_question_feedback_line(idx, feedback))
 
 
 def _parse_quiz_scope(scope: str) -> tuple[str, str]:
@@ -2860,8 +2958,8 @@ def main():
     st.title(tr("Kişiye Özel 5 Soruluk Olasılık Quizi", "Personalized 5-Question Probability Quiz"))
     st.caption(
         tr(
-            "Sayılar öğrenci numarasına göre değişir. Her oturumda her öğrenci bir kez teslim yapabilir.",
-            "Numbers are generated from the student ID. Each student can submit only once per session.",
+            "Sayılar öğrenci numarası ve oturuma göre değişir. Her oturumda her öğrenci bir kez teslim yapabilir.",
+            "Numbers are generated from the student ID and session. Each student can submit only once per session.",
         )
     )
 
@@ -2987,12 +3085,10 @@ def main():
                 )
 
         if existing_submission is not None and pd.notna(existing_submission.get("score")):
-            st.info(
-                tr(
-                    "Kayıtlı puanınız: {score}/100",
-                    "Recorded score: {score}/100",
-                    score=int(float(existing_submission["score"])),
-                )
+            render_submission_score_summary(
+                existing_submission["score"],
+                _question_feedback_from_submission(existing_submission, len(questions)),
+                recorded=True,
             )
         elif existing_submission is None:
             st.warning(
@@ -3052,12 +3148,10 @@ def main():
                 )
             )
             if pd.notna(existing_submission.get("score")):
-                st.info(
-                    tr(
-                        "Kayıtlı puanınız: {score}/100",
-                        "Recorded score: {score}/100",
-                        score=int(float(existing_submission["score"])),
-                    )
+                render_submission_score_summary(
+                    existing_submission["score"],
+                    _question_feedback_from_submission(existing_submission, len(questions)),
+                    recorded=True,
                 )
             st.stop()
 
@@ -3159,7 +3253,11 @@ def main():
 
             score, scored = _score_quiz_answers(questions, [ans["given"] for ans in answers])
 
-            st.success(tr("Toplam puan: {score}/100", "Total score: {score}/100", score=score))
+            render_submission_score_summary(
+                score,
+                _question_feedback_from_scored(scored),
+                recorded=False,
+            )
             st.info(
                 tr(
                     "Sonucunuz kaydedildi. Quiz süresi bittikten sonra açıklama/yorum yazabileceksiniz.",
@@ -3211,12 +3309,10 @@ def main():
         draft_explanations = _read_comment_draft(comment_scope) or {}
 
         if pd.notna(existing_submission.get("score")):
-            st.info(
-                tr(
-                    "Kayıtlı puanınız: {score}/100",
-                    "Recorded score: {score}/100",
-                    score=int(float(existing_submission["score"])),
-                )
+            render_submission_score_summary(
+                existing_submission["score"],
+                _question_feedback_from_submission(existing_submission, len(questions)),
+                recorded=True,
             )
 
         st.markdown(
