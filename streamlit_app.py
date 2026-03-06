@@ -909,24 +909,63 @@ def load_results_df() -> pd.DataFrame:
         )
 
 
-def clear_results_for_teacher(teacher_name: str) -> int:
-    """Seçilen ??retmene ait tum sonuc kay?tlarini siler."""
-    _ensure_sqlite_ready()
-    teacher_clean = teacher_name.strip()
-    with _sqlite_connect() as conn:
-        removed_count = int(
-            conn.execute(
-                "SELECT COUNT(*) FROM quiz_results WHERE TRIM(COALESCE(teacher_name, '')) = ?",
-                (teacher_clean,),
-            ).fetchone()[0]
-        )
-        if removed_count == 0:
-            return 0
+def _delete_teacher_rows_from_table(conn: sqlite3.Connection, table_name: str, teacher_name: str) -> int:
+    """Verilen tabloda öğretmene ait satırları siler."""
+    removed_count = int(
         conn.execute(
-            "DELETE FROM quiz_results WHERE TRIM(COALESCE(teacher_name, '')) = ?",
-            (teacher_clean,),
+            f"SELECT COUNT(*) FROM {table_name} WHERE TRIM(COALESCE(teacher_name, '')) = ?",
+            (teacher_name,),
+        ).fetchone()[0]
+    )
+    if removed_count > 0:
+        conn.execute(
+            f"DELETE FROM {table_name} WHERE TRIM(COALESCE(teacher_name, '')) = ?",
+            (teacher_name,),
         )
     return removed_count
+
+
+def _delete_teacher_rows_from_csv(path: Path, teacher_name: str) -> int:
+    """Eski CSV yedeklerinden öğretmene ait satırları da temizler."""
+    if not path.exists():
+        return 0
+    try:
+        df = pd.read_csv(path, encoding="utf-8")
+    except (OSError, pd.errors.ParserError):
+        return 0
+    if df.empty or "teacher_name" not in df.columns:
+        return 0
+
+    mask = df["teacher_name"].astype(str).str.strip() == teacher_name
+    removed_count = int(mask.sum())
+    if removed_count == 0:
+        return 0
+
+    cleaned = df.loc[~mask].copy()
+    cleaned.to_csv(path, index=False, encoding="utf-8")
+    return removed_count
+
+
+def clear_results_for_teacher(teacher_name: str) -> dict[str, int]:
+    """Seçilen öğretmene ait sonuç, taslak ve CSV yedek kayıtlarını siler."""
+    _ensure_sqlite_ready()
+    teacher_clean = teacher_name.strip()
+    removed_summary = {
+        "results_db": 0,
+        "drafts_db": 0,
+        "results_csv": 0,
+        "drafts_csv": 0,
+    }
+    if not teacher_clean:
+        return removed_summary
+
+    with _sqlite_connect() as conn:
+        removed_summary["results_db"] = _delete_teacher_rows_from_table(conn, "quiz_results", teacher_clean)
+        removed_summary["drafts_db"] = _delete_teacher_rows_from_table(conn, "quiz_answer_drafts", teacher_clean)
+
+    removed_summary["results_csv"] = _delete_teacher_rows_from_csv(RESULTS_PATH, teacher_clean)
+    removed_summary["drafts_csv"] = _delete_teacher_rows_from_csv(QUIZ_ANSWER_DRAFTS_PATH, teacher_clean)
+    return removed_summary
 
 
 def get_existing_submission(student_id: str, quiz_session: str) -> dict[str, Any] | None:
@@ -2197,14 +2236,26 @@ def teacher_view():
                 st.error(tr("Lütfen önce onay kutusunu işaretleyin.", "Please check the confirmation box first."))
             else:
                 removed = clear_results_for_teacher(selected_teacher)
+                removed_total = sum(removed.values())
                 st.session_state["teacher_clear_message"] = (
                     tr(
-                        "{teacher} için {removed} kayıt silindi.",
-                        "Deleted {removed} records for {teacher}.",
+                        (
+                            "{teacher} için tüm kayıtlar temizlendi. "
+                            "Silinenler: sonuç DB={results_db}, taslak DB={drafts_db}, "
+                            "sonuç CSV={results_csv}, taslak CSV={drafts_csv}."
+                        ),
+                        (
+                            "All records were cleared for {teacher}. "
+                            "Deleted: results DB={results_db}, drafts DB={drafts_db}, "
+                            "results CSV={results_csv}, drafts CSV={drafts_csv}."
+                        ),
                         teacher=selected_teacher,
-                        removed=removed,
+                        results_db=removed["results_db"],
+                        drafts_db=removed["drafts_db"],
+                        results_csv=removed["results_csv"],
+                        drafts_csv=removed["drafts_csv"],
                     )
-                    if removed > 0
+                    if removed_total > 0
                     else tr(
                         "{teacher} için silinecek kayıt bulunamadı.",
                         "No records found to delete for {teacher}.",
@@ -3381,4 +3432,3 @@ def main():
             st.balloons()
 if __name__ == "__main__":
     main()
-
