@@ -18,6 +18,7 @@ import json
 import math
 import os
 import sqlite3
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -67,6 +68,8 @@ SQLITE_DB_PATH = Path("outputs/quiz_results.db")
 COMMENT_DRAFT_SCOPE_STATE_KEY = "_comment_draft_scope"
 COMMENT_DRAFT_VALUES_STATE_KEY = "_comment_draft_values"
 ANSWER_AUTOSAVE_AT_STATE_KEY = "_answer_autosave_at"
+LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY = "_last_quiz_snapshot_signature"
+QUIZ_RESULTS_UNIQUE_INDEX = "ux_quiz_results_session_student"
 DEFAULT_QUIZ_CONTROL: dict[str, Any] = {
     "is_open": False,
     "active_session": "",
@@ -85,6 +88,15 @@ TAB_MONITOR_COMPONENT = components.declare_component(
     "tab_monitor",
     path=str(TAB_MONITOR_COMPONENT_PATH),
 )
+_SQLITE_READY_LOCK = threading.Lock()
+_SQLITE_READY = False
+
+
+def _identity_decorator(func):
+    return func
+
+
+fragment = getattr(st, "fragment", _identity_decorator)
 
 
 def _now_iso() -> str:
@@ -755,6 +767,7 @@ def _sqlite_connect() -> sqlite3.Connection:
     SQLITE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(SQLITE_DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 30000")
     return conn
 
 
@@ -772,131 +785,169 @@ def _draft_columns() -> list[str]:
     return cols
 
 
+def _deduplicate_quiz_results(conn: sqlite3.Connection) -> None:
+    """Ayni ogrenci+oturum icin en guncel satiri korur."""
+    conn.execute("UPDATE quiz_results SET student_id = TRIM(COALESCE(student_id, ''))")
+    conn.execute("UPDATE quiz_results SET quiz_session = TRIM(COALESCE(quiz_session, ''))")
+    conn.execute(
+        """
+        DELETE FROM quiz_results
+        WHERE id IN (
+            SELECT older.id
+            FROM quiz_results AS older
+            JOIN quiz_results AS newer
+              ON newer.quiz_session = older.quiz_session
+             AND newer.student_id = older.student_id
+             AND (
+                    newer.timestamp > older.timestamp
+                 OR (newer.timestamp = older.timestamp AND newer.id > older.id)
+             )
+        )
+        """
+    )
+    conn.execute(
+        f"CREATE UNIQUE INDEX IF NOT EXISTS {QUIZ_RESULTS_UNIQUE_INDEX} "
+        "ON quiz_results(quiz_session, student_id)"
+    )
+
+
 def _ensure_sqlite_ready() -> None:
     """Gerekli SQLite tablolarini olusturur ve varsa CSV verisini migrate eder."""
-    with _sqlite_connect() as conn:
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS quiz_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                student_id TEXT NOT NULL,
-                student_name TEXT,
-                teacher_name TEXT,
-                quiz_session TEXT NOT NULL,
-                score INTEGER,
-                q1_given REAL, q1_correct REAL, q1_is_correct INTEGER, q1_explanation TEXT,
-                q2_given REAL, q2_correct REAL, q2_is_correct INTEGER, q2_explanation TEXT,
-                q3_given REAL, q3_correct REAL, q3_is_correct INTEGER, q3_explanation TEXT,
-                q4_given REAL, q4_correct REAL, q4_is_correct INTEGER, q4_explanation TEXT,
-                q5_given REAL, q5_correct REAL, q5_is_correct INTEGER, q5_explanation TEXT
+    global _SQLITE_READY
+    if _SQLITE_READY:
+        return
+
+    with _SQLITE_READY_LOCK:
+        if _SQLITE_READY:
+            return
+
+        with _sqlite_connect() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS quiz_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    student_id TEXT NOT NULL,
+                    student_name TEXT,
+                    teacher_name TEXT,
+                    quiz_session TEXT NOT NULL,
+                    score INTEGER,
+                    q1_given REAL, q1_correct REAL, q1_is_correct INTEGER, q1_explanation TEXT,
+                    q2_given REAL, q2_correct REAL, q2_is_correct INTEGER, q2_explanation TEXT,
+                    q3_given REAL, q3_correct REAL, q3_is_correct INTEGER, q3_explanation TEXT,
+                    q4_given REAL, q4_correct REAL, q4_is_correct INTEGER, q4_explanation TEXT,
+                    q5_given REAL, q5_correct REAL, q5_is_correct INTEGER, q5_explanation TEXT
+                )
+                """
             )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS quiz_answer_drafts (
-                quiz_session TEXT NOT NULL,
-                student_id TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                student_name TEXT,
-                teacher_name TEXT,
-                q1_given REAL, q2_given REAL, q3_given REAL, q4_given REAL, q5_given REAL,
-                PRIMARY KEY (quiz_session, student_id)
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS quiz_answer_drafts (
+                    quiz_session TEXT NOT NULL,
+                    student_id TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    student_name TEXT,
+                    teacher_name TEXT,
+                    q1_given REAL, q2_given REAL, q3_given REAL, q4_given REAL, q5_given REAL,
+                    PRIMARY KEY (quiz_session, student_id)
+                )
+                """
             )
-            """
-        )
-        existing_result_cols = {
-            row["name"] for row in conn.execute("PRAGMA table_info(quiz_results)").fetchall()
-        }
-        expected_result_cols: dict[str, str] = {
-            "timestamp": "TEXT",
-            "student_id": "TEXT",
-            "student_name": "TEXT",
-            "teacher_name": "TEXT",
-            "quiz_session": "TEXT",
-            "score": "INTEGER",
-            "q1_given": "REAL",
-            "q1_correct": "REAL",
-            "q1_is_correct": "INTEGER",
-            "q1_explanation": "TEXT",
-            "q2_given": "REAL",
-            "q2_correct": "REAL",
-            "q2_is_correct": "INTEGER",
-            "q2_explanation": "TEXT",
-            "q3_given": "REAL",
-            "q3_correct": "REAL",
-            "q3_is_correct": "INTEGER",
-            "q3_explanation": "TEXT",
-            "q4_given": "REAL",
-            "q4_correct": "REAL",
-            "q4_is_correct": "INTEGER",
-            "q4_explanation": "TEXT",
-            "q5_given": "REAL",
-            "q5_correct": "REAL",
-            "q5_is_correct": "INTEGER",
-            "q5_explanation": "TEXT",
-        }
-        for col, col_type in expected_result_cols.items():
-            if col not in existing_result_cols:
+            existing_result_cols = {
+                row["name"] for row in conn.execute("PRAGMA table_info(quiz_results)").fetchall()
+            }
+            expected_result_cols: dict[str, str] = {
+                "timestamp": "TEXT",
+                "student_id": "TEXT",
+                "student_name": "TEXT",
+                "teacher_name": "TEXT",
+                "quiz_session": "TEXT",
+                "score": "INTEGER",
+                "q1_given": "REAL",
+                "q1_correct": "REAL",
+                "q1_is_correct": "INTEGER",
+                "q1_explanation": "TEXT",
+                "q2_given": "REAL",
+                "q2_correct": "REAL",
+                "q2_is_correct": "INTEGER",
+                "q2_explanation": "TEXT",
+                "q3_given": "REAL",
+                "q3_correct": "REAL",
+                "q3_is_correct": "INTEGER",
+                "q3_explanation": "TEXT",
+                "q4_given": "REAL",
+                "q4_correct": "REAL",
+                "q4_is_correct": "INTEGER",
+                "q4_explanation": "TEXT",
+                "q5_given": "REAL",
+                "q5_correct": "REAL",
+                "q5_is_correct": "INTEGER",
+                "q5_explanation": "TEXT",
+            }
+            for col, col_type in expected_result_cols.items():
+                if col not in existing_result_cols:
+                    try:
+                        conn.execute(f"ALTER TABLE quiz_results ADD COLUMN {col} {col_type}")
+                    except sqlite3.OperationalError:
+                        pass
+
+            existing_draft_cols = {
+                row["name"] for row in conn.execute("PRAGMA table_info(quiz_answer_drafts)").fetchall()
+            }
+            expected_draft_cols: dict[str, str] = {
+                "quiz_session": "TEXT",
+                "student_id": "TEXT",
+                "updated_at": "TEXT",
+                "student_name": "TEXT",
+                "teacher_name": "TEXT",
+                "q1_given": "REAL",
+                "q2_given": "REAL",
+                "q3_given": "REAL",
+                "q4_given": "REAL",
+                "q5_given": "REAL",
+            }
+            for col, col_type in expected_draft_cols.items():
+                if col not in existing_draft_cols:
+                    try:
+                        conn.execute(f"ALTER TABLE quiz_answer_drafts ADD COLUMN {col} {col_type}")
+                    except sqlite3.OperationalError:
+                        pass
+
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_results_session ON quiz_results(quiz_session)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_results_teacher ON quiz_results(teacher_name)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_results_student ON quiz_results(student_id)")
+
+            result_count = int(conn.execute("SELECT COUNT(*) FROM quiz_results").fetchone()[0])
+            if result_count == 0 and RESULTS_PATH.exists():
                 try:
-                    conn.execute(f"ALTER TABLE quiz_results ADD COLUMN {col} {col_type}")
-                except sqlite3.OperationalError:
-                    pass
+                    old_df = pd.read_csv(RESULTS_PATH, encoding="utf-8")
+                except (OSError, pd.errors.ParserError):
+                    old_df = pd.DataFrame()
+                if not old_df.empty:
+                    for col in _results_columns():
+                        if col not in old_df.columns:
+                            old_df[col] = pd.NA
+                    old_df = old_df[_results_columns()]
+                    old_df.to_sql("quiz_results", conn, if_exists="append", index=False)
 
-        existing_draft_cols = {
-            row["name"] for row in conn.execute("PRAGMA table_info(quiz_answer_drafts)").fetchall()
-        }
-        expected_draft_cols: dict[str, str] = {
-            "quiz_session": "TEXT",
-            "student_id": "TEXT",
-            "updated_at": "TEXT",
-            "student_name": "TEXT",
-            "teacher_name": "TEXT",
-            "q1_given": "REAL",
-            "q2_given": "REAL",
-            "q3_given": "REAL",
-            "q4_given": "REAL",
-            "q5_given": "REAL",
-        }
-        for col, col_type in expected_draft_cols.items():
-            if col not in existing_draft_cols:
+            draft_count = int(conn.execute("SELECT COUNT(*) FROM quiz_answer_drafts").fetchone()[0])
+            if draft_count == 0 and QUIZ_ANSWER_DRAFTS_PATH.exists():
                 try:
-                    conn.execute(f"ALTER TABLE quiz_answer_drafts ADD COLUMN {col} {col_type}")
-                except sqlite3.OperationalError:
-                    pass
+                    old_drafts = pd.read_csv(QUIZ_ANSWER_DRAFTS_PATH, encoding="utf-8")
+                except (OSError, pd.errors.ParserError):
+                    old_drafts = pd.DataFrame()
+                if not old_drafts.empty:
+                    for col in _draft_columns():
+                        if col not in old_drafts.columns:
+                            old_drafts[col] = pd.NA
+                    old_drafts = old_drafts[_draft_columns()]
+                    old_drafts.to_sql("quiz_answer_drafts", conn, if_exists="append", index=False)
 
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_session ON quiz_results(quiz_session)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_teacher ON quiz_results(teacher_name)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_student ON quiz_results(student_id)")
+            _deduplicate_quiz_results(conn)
 
-        result_count = int(conn.execute("SELECT COUNT(*) FROM quiz_results").fetchone()[0])
-        if result_count == 0 and RESULTS_PATH.exists():
-            try:
-                old_df = pd.read_csv(RESULTS_PATH, encoding="utf-8")
-            except (OSError, pd.errors.ParserError):
-                old_df = pd.DataFrame()
-            if not old_df.empty:
-                for col in _results_columns():
-                    if col not in old_df.columns:
-                        old_df[col] = pd.NA
-                old_df = old_df[_results_columns()]
-                old_df.to_sql("quiz_results", conn, if_exists="append", index=False)
-
-        draft_count = int(conn.execute("SELECT COUNT(*) FROM quiz_answer_drafts").fetchone()[0])
-        if draft_count == 0 and QUIZ_ANSWER_DRAFTS_PATH.exists():
-            try:
-                old_drafts = pd.read_csv(QUIZ_ANSWER_DRAFTS_PATH, encoding="utf-8")
-            except (OSError, pd.errors.ParserError):
-                old_drafts = pd.DataFrame()
-            if not old_drafts.empty:
-                for col in _draft_columns():
-                    if col not in old_drafts.columns:
-                        old_drafts[col] = pd.NA
-                old_drafts = old_drafts[_draft_columns()]
-                old_drafts.to_sql("quiz_answer_drafts", conn, if_exists="append", index=False)
+        _SQLITE_READY = True
 
 
 def load_results_df() -> pd.DataFrame:
@@ -995,14 +1046,22 @@ def submission_count_for_session(quiz_session: str, teacher_name: str | None = N
     if not quiz_session:
         return 0
 
-    df = load_results_df()
-    if df.empty or "quiz_session" not in df.columns:
-        return 0
+    _ensure_sqlite_ready()
+    session_clean = quiz_session.strip()
+    teacher_clean = (teacher_name or "").strip()
+    query = [
+        "SELECT COUNT(DISTINCT TRIM(student_id))",
+        "FROM quiz_results",
+        "WHERE TRIM(quiz_session) = ?",
+    ]
+    params: list[Any] = [session_clean]
+    if teacher_clean:
+        query.append("AND TRIM(COALESCE(teacher_name, '')) = ?")
+        params.append(teacher_clean)
 
-    mask = df["quiz_session"].astype(str).str.strip() == quiz_session.strip()
-    if teacher_name and "teacher_name" in df.columns:
-        mask = mask & (df["teacher_name"].astype(str).str.strip() == teacher_name.strip())
-    return int(mask.sum())
+    with _sqlite_connect() as conn:
+        value = conn.execute("\n".join(query), params).fetchone()[0]
+    return int(value or 0)
 
 
 def check_answer(user_value: float, correct_value: float, abs_tol: float) -> bool:
@@ -1157,35 +1216,51 @@ def _parse_quiz_scope(scope: str) -> tuple[str, str]:
     return session_id.strip(), student_id.strip()
 
 
-def _load_quiz_answer_drafts_df() -> pd.DataFrame:
-    """Quiz cevap taslak CSV'sini guvenli bicimde okur."""
-    _ensure_sqlite_ready()
-    with _sqlite_connect() as conn:
-        return pd.read_sql_query(
-            f"SELECT {', '.join(_draft_columns())} FROM quiz_answer_drafts",
-            conn,
-        )
-
-
 def _read_quiz_answer_snapshot_record(scope: str) -> dict[str, Any] | None:
     """Scope'a ait son quiz taslagini satir olarak okur."""
     session_id, student_id = _parse_quiz_scope(scope)
     if not session_id or not student_id:
         return None
 
-    df = _load_quiz_answer_drafts_df()
-    if df.empty or "quiz_session" not in df.columns or "student_id" not in df.columns:
+    _ensure_sqlite_ready()
+    with _sqlite_connect() as conn:
+        row = conn.execute(
+            f"""
+            SELECT {', '.join(_draft_columns())}
+            FROM quiz_answer_drafts
+            WHERE TRIM(quiz_session) = ? AND TRIM(student_id) = ?
+            LIMIT 1
+            """,
+            (session_id, student_id),
+        ).fetchone()
+    if row is None:
         return None
+    return dict(row)
 
-    mask = (
-        (df["quiz_session"].astype(str).str.strip() == session_id)
-        & (df["student_id"].astype(str).str.strip() == student_id)
+
+def _quiz_snapshot_signature(
+    scope: str,
+    answers: list[dict[str, Any]],
+    student_name: str,
+    teacher_name: str,
+) -> tuple[Any, ...]:
+    normalized_answers = tuple(_sanitize_answer_value(item.get("given", 0.0)) for item in answers)
+    return (
+        scope.strip(),
+        student_name.strip(),
+        teacher_name.strip(),
+        normalized_answers,
     )
-    if not mask.any():
-        return None
 
-    latest = df[mask].sort_values("updated_at", ascending=False).iloc[0]
-    return latest.to_dict()
+
+def _quiz_snapshot_signature_from_record(scope: str, record: dict[str, Any]) -> tuple[Any, ...]:
+    answers = [{"given": record.get(f"q{idx}_given", 0.0)} for idx in range(1, QUIZ_SLOT_COUNT + 1)]
+    return _quiz_snapshot_signature(
+        scope,
+        answers,
+        str(record.get("student_name") or ""),
+        str(record.get("teacher_name") or ""),
+    )
 
 
 def _store_quiz_answer_snapshot(
@@ -1193,11 +1268,11 @@ def _store_quiz_answer_snapshot(
     answers: list[dict[str, Any]],
     student_name: str = "",
     teacher_name: str = "",
-) -> None:
+) -> bool:
     """Quiz cevaplarini Öğrenci+oturum bazli sunucu taslagi olarak saklar."""
     session_id, student_id = _parse_quiz_scope(scope)
     if not session_id or not student_id:
-        return
+        return False
 
     row: dict[str, Any] = {
         "updated_at": _now_iso(),
@@ -1208,6 +1283,16 @@ def _store_quiz_answer_snapshot(
     }
     for idx, item in enumerate(answers, start=1):
         row[f"q{idx}_given"] = _sanitize_answer_value(item.get("given", 0.0))
+
+    signature = _quiz_snapshot_signature(scope, answers, row["student_name"], row["teacher_name"])
+    if st.session_state.get(LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY) == signature:
+        return False
+
+    existing_record = _read_quiz_answer_snapshot_record(scope)
+    if existing_record is not None and _quiz_snapshot_signature_from_record(scope, existing_record) == signature:
+        st.session_state[LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY] = signature
+        st.session_state[ANSWER_AUTOSAVE_AT_STATE_KEY] = str(existing_record.get("updated_at") or row["updated_at"])
+        return False
 
     _ensure_sqlite_ready()
     with _sqlite_connect() as conn:
@@ -1240,7 +1325,9 @@ def _store_quiz_answer_snapshot(
                 row.get("q5_given", 0.0),
             ),
         )
+    st.session_state[LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY] = signature
     st.session_state[ANSWER_AUTOSAVE_AT_STATE_KEY] = row["updated_at"]
+    return True
 
 
 def _read_quiz_answer_snapshot(scope: str, question_count: int) -> list[float] | None:
@@ -1281,6 +1368,7 @@ def _read_quiz_answers_from_session_state(quiz_session: str, student_id: str, qu
 
 def _clear_quiz_answer_snapshot(scope: str | None = None) -> None:
     """Sunucu tarafindaki quiz taslak kaydini temizler."""
+    st.session_state.pop(LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY, None)
     if scope is None:
         return
 
@@ -1882,9 +1970,8 @@ def plot_circuit_c123(p_c1: float, p_c2: float, p_c3: float):
     return fig
 
 
-def render_question_visual(question: dict[str, Any]):
-    """Soruya göre uygun gorsel olusturur."""
-    visual = question.get("visual")
+def _render_question_visual_from_visual(visual: dict[str, Any] | None):
+    """Gorsel spec'ine gore uygun matplotlib figuru olusturur."""
     if not visual:
         return None
 
@@ -1940,6 +2027,27 @@ def render_question_visual(question: dict[str, Any]):
     return None
 
 
+def render_question_visual(question: dict[str, Any]):
+    """Soruya göre uygun gorsel olusturur."""
+    visual = question.get("visual")
+    if not isinstance(visual, dict):
+        return None
+    return _render_question_visual_from_visual(visual)
+
+
+@st.cache_data(show_spinner=False, max_entries=2048)
+def _question_visual_png_bytes(visual_signature: str) -> bytes | None:
+    visual = json.loads(visual_signature)
+    fig = _render_question_visual_from_visual(visual)
+    if fig is None:
+        return None
+
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return buffer.getvalue()
+
+
 def record_result(
     student_id: str,
     student_name: str,
@@ -1947,16 +2055,16 @@ def record_result(
     quiz_session: str,
     score: int,
     answers: list[dict[str, Any]],
-):
+) -> bool:
     """Sonuclari SQLite veritabanina ekler."""
     _ensure_sqlite_ready()
 
     row: dict[str, Any] = {
         "timestamp": _now_iso(),
-        "student_id": student_id,
-        "student_name": student_name,
-        "teacher_name": teacher_name,
-        "quiz_session": quiz_session,
+        "student_id": student_id.strip(),
+        "student_name": student_name.strip(),
+        "teacher_name": teacher_name.strip(),
+        "quiz_session": quiz_session.strip(),
         "score": score,
     }
     for i, item in enumerate(answers, start=1):
@@ -1966,7 +2074,7 @@ def record_result(
         row[f"q{i}_explanation"] = str(item.get("explanation") or "").strip()
 
     with _sqlite_connect() as conn:
-        conn.execute(
+        cursor = conn.execute(
             """
             INSERT INTO quiz_results (
                 timestamp, student_id, student_name, teacher_name, quiz_session, score,
@@ -1976,6 +2084,7 @@ def record_result(
                 q4_given, q4_correct, q4_is_correct, q4_explanation,
                 q5_given, q5_correct, q5_is_correct, q5_explanation
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(quiz_session, student_id) DO NOTHING
             """,
             (
                 row["timestamp"],
@@ -2006,6 +2115,7 @@ def record_result(
                 row.get("q5_explanation", ""),
             ),
         )
+    return bool(cursor.rowcount)
 
 
 def evaluate_quiz_availability(control: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
@@ -2633,23 +2743,26 @@ def _generate_bg_svg(rng: OcrShieldRng, width: int = 600, height: int = 200) -> 
     return f"url('data:image/svg+xml;base64,{b64}')"
 
 
-def render_question_card(
+@st.cache_data(show_spinner=False, max_entries=4096)
+def _question_card_payload(
     title: str,
     body: str,
     index: int,
-    language: str = DEFAULT_UI_LANGUAGE,
-):
-    body = (
+    language: str,
+    student_id: str,
+) -> tuple[str, str, str]:
+    normalized_body = (
         body.replace("âˆ©", "∩")
         .replace("Ã¢Ë†Â©", "∩")
         .replace("P(U@D)", "P(U∩D)")
         .replace("P(Y@F)", "P(Y∩F)")
     )
     question_prefix = "Question" if normalize_ui_language(language) == "en" else "Soru"
-    rng = _get_ocr_rng()
-    if rng is not None:
+    student_clean = student_id.strip()
+    if student_clean:
+        rng = OcrShieldRng(_compute_seed_from_id(student_clean))
         rendered_title = _ocr_shield_full(f"{question_prefix} {index}: {title}", rng)
-        rendered_body = _ocr_shield_full(body, rng)
+        rendered_body = _ocr_shield_full(normalized_body, rng)
         bg_svg = _generate_bg_svg(rng)
         card_style = (
             f"background-image:{bg_svg};"
@@ -2657,8 +2770,25 @@ def render_question_card(
         )
     else:
         rendered_title = f"{question_prefix} {index}: {html.escape(title)}"
-        rendered_body = html.escape(body)
+        rendered_body = html.escape(normalized_body)
         card_style = ""
+    return rendered_title, rendered_body, card_style
+
+
+def render_question_card(
+    title: str,
+    body: str,
+    index: int,
+    language: str = DEFAULT_UI_LANGUAGE,
+):
+    student_id = str(st.session_state.get("_ocr_student_id", "")).strip()
+    rendered_title, rendered_body, card_style = _question_card_payload(
+        title,
+        body,
+        index,
+        language,
+        student_id,
+    )
 
     st.markdown(
         f"""
@@ -2669,6 +2799,18 @@ def render_question_card(
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_question_visual_media(question: dict[str, Any]) -> None:
+    """Soru gorselini cache'lenmis PNG olarak gosterir."""
+    visual = question.get("visual")
+    if not isinstance(visual, dict):
+        return
+
+    visual_signature = json.dumps(visual, ensure_ascii=False, sort_keys=True)
+    image_bytes = _question_visual_png_bytes(visual_signature)
+    if image_bytes is not None:
+        st.image(image_bytes, use_container_width=True)
 
 
 def inject_styles():
@@ -2979,6 +3121,152 @@ def _render_violation_block(language: str = DEFAULT_UI_LANGUAGE) -> None:
     )
 
 
+@fragment
+def _render_quiz_answer_phase_fragment(
+    *,
+    active_session: str,
+    student_id_clean: str,
+    student_name_clean: str,
+    teacher_name_clean: str,
+    questions: list[dict[str, Any]],
+    selected_language: str,
+    comment_enabled: bool,
+) -> None:
+    current_phase, _, _ = evaluate_quiz_availability(load_quiz_control())
+    if current_phase != "quiz":
+        rerun_app()
+        return
+
+    existing_submission = get_existing_submission(student_id_clean, active_session)
+    if existing_submission is not None:
+        _clear_quiz_answer_snapshot(f"{active_session}:{student_id_clean}")
+        st.warning(
+            tr(
+                "Bu oturumda daha önce teslim yaptınız. Quiz süresi bittiğinde yorumlarınızı yazabilirsiniz.",
+                "You already submitted in this session. You can write comments after quiz time ends.",
+            )
+            if comment_enabled
+            else tr(
+                "Bu oturumda daha önce teslim yaptınız.",
+                "You already submitted in this session.",
+            )
+        )
+        if pd.notna(existing_submission.get("score")):
+            render_submission_score_summary(
+                existing_submission["score"],
+                _question_feedback_from_submission(existing_submission, len(questions)),
+                recorded=True,
+            )
+        return
+
+    violation_scope = f"{active_session}:{student_id_clean}"
+    saved_answers = _read_quiz_answer_snapshot(violation_scope, len(questions))
+    answers: list[dict[str, Any]] = []
+    for row_start in range(0, len(questions), 2):
+        row_questions = questions[row_start : row_start + 2]
+        row_cols = st.columns(len(row_questions), gap="large")
+        for col_idx, q in enumerate(row_questions):
+            idx = row_start + col_idx + 1
+            with row_cols[col_idx]:
+                render_question_card(q["title"], q["text"], idx, language=selected_language)
+                default_value = 0.0
+                if saved_answers is not None and idx - 1 < len(saved_answers):
+                    default_value = _sanitize_answer_value(saved_answers[idx - 1])
+                user_value = st.number_input(
+                    tr("Cevabın (0-1 arası, 2 ondalık)", "Your answer (0-1, 2 decimals)"),
+                    key=f"ans_{active_session}_{student_id_clean}_{idx}",
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.01,
+                    format="%.2f",
+                    value=float(default_value),
+                )
+                answers.append(
+                    {
+                        "given": user_value,
+                        "correct": q["answer"],
+                        "tolerance": q["tolerance"],
+                        "explanation": "",
+                    }
+                )
+                render_question_visual_media(q)
+
+    _store_quiz_answer_snapshot(
+        f"{active_session}:{student_id_clean}",
+        answers,
+        student_name_clean,
+        teacher_name_clean,
+    )
+    last_autosave = str(st.session_state.get(ANSWER_AUTOSAVE_AT_STATE_KEY) or "")
+    st.caption(
+        tr(
+            "Cevaplarınız her değişiklikte otomatik kaydediliyor. Son kayıt: {saved_at}",
+            "Your answers are auto-saved on every change. Last save: {saved_at}",
+            saved_at=format_dt_for_ui(last_autosave),
+        )
+    )
+
+    confirm_submit = st.checkbox(
+        tr(
+            "Cevaplarımı göndermek istediğime eminim. (Gönderdikten sonra değiştiremezsiniz.)",
+            "I confirm that I want to submit my answers. (You cannot change them after submission.)",
+        ),
+        key=f"confirm_submit_checkbox_{active_session}_{student_id_clean}",
+    )
+    if st.button(tr("Cevapları Gönder ve Puanla", "Submit Answers and Score"), type="primary", disabled=not confirm_submit):
+        existing_submission = get_existing_submission(student_id_clean, active_session)
+        if existing_submission is not None:
+            st.info(
+                tr(
+                    "Bu oturum için cevaplarınız zaten kaydedilmiş.",
+                    "Your answers for this session are already recorded.",
+                )
+            )
+            if pd.notna(existing_submission.get("score")):
+                render_submission_score_summary(
+                    existing_submission["score"],
+                    _question_feedback_from_submission(existing_submission, len(questions)),
+                    recorded=True,
+                )
+            return
+
+        score, scored = _score_quiz_answers(questions, [ans["given"] for ans in answers])
+        inserted = record_result(student_id_clean, student_name_clean, teacher_name_clean, active_session, score, scored)
+
+        if inserted:
+            render_submission_score_summary(
+                score,
+                _question_feedback_from_scored(scored),
+                recorded=False,
+            )
+            st.info(
+                tr(
+                    "Sonucunuz kaydedildi. Quiz süresi bittikten sonra açıklama/yorum yazabileceksiniz.",
+                    "Your result has been saved. You can write explanations/comments after quiz time ends.",
+                )
+                if comment_enabled
+                else tr("Sonucunuz kaydedildi.", "Your result has been saved.")
+            )
+            _clear_quiz_answer_snapshot(f"{active_session}:{student_id_clean}")
+            st.balloons()
+            return
+
+        existing_submission = get_existing_submission(student_id_clean, active_session)
+        _clear_quiz_answer_snapshot(f"{active_session}:{student_id_clean}")
+        st.warning(
+            tr(
+                "Bu oturum için kayıt zaten oluşmuş. Çift teslim engellendi.",
+                "A record already exists for this session. Duplicate submission was blocked.",
+            )
+        )
+        if existing_submission is not None and pd.notna(existing_submission.get("score")):
+            render_submission_score_summary(
+                existing_submission["score"],
+                _question_feedback_from_submission(existing_submission, len(questions)),
+                recorded=True,
+            )
+
+
 def main():
     st.set_page_config(page_title="Personalized Probability Quiz", page_icon="Q", layout="wide")
     inject_styles()
@@ -3235,92 +3523,15 @@ def main():
                 )
             )
 
-        saved_answers = _read_quiz_answer_snapshot(violation_scope, len(questions))
-        answers: list[dict[str, Any]] = []
-        for row_start in range(0, len(questions), 2):
-            row_questions = questions[row_start : row_start + 2]
-            row_cols = st.columns(len(row_questions), gap="large")
-            for col_idx, q in enumerate(row_questions):
-                idx = row_start + col_idx + 1
-                with row_cols[col_idx]:
-                    render_question_card(q["title"], q["text"], idx, language=selected_language)
-                    default_value = 0.0
-                    if saved_answers is not None and idx - 1 < len(saved_answers):
-                        default_value = _sanitize_answer_value(saved_answers[idx - 1])
-                    user_value = st.number_input(
-                        tr("Cevabın (0-1 arası, 2 ondalık)", "Your answer (0-1, 2 decimals)"),
-                        key=f"ans_{active_session}_{student_id_clean}_{idx}",
-                        min_value=0.0,
-                        max_value=1.0,
-                        step=0.01,
-                        format="%.2f",
-                        value=float(default_value),
-                    )
-                    answers.append(
-                        {
-                            "given": user_value,
-                            "correct": q["answer"],
-                            "tolerance": q["tolerance"],
-                            "explanation": "",
-                        }
-                    )
-
-                    fig = render_question_visual(q)
-                    if fig is not None:
-                        st.pyplot(fig, clear_figure=True, width="stretch")
-                        plt.close(fig)
-
-        _store_quiz_answer_snapshot(
-            f"{active_session}:{student_id_clean}",
-            answers,
-            student_name_clean,
-            teacher_name_clean,
+        _render_quiz_answer_phase_fragment(
+            active_session=active_session,
+            student_id_clean=student_id_clean,
+            student_name_clean=student_name_clean,
+            teacher_name_clean=teacher_name_clean,
+            questions=questions,
+            selected_language=selected_language,
+            comment_enabled=comment_enabled,
         )
-        last_autosave = str(st.session_state.get(ANSWER_AUTOSAVE_AT_STATE_KEY) or "")
-        st.caption(
-            tr(
-                "Cevaplarınız her değişiklikte otomatik kaydediliyor. Son kayıt: {saved_at}",
-                "Your answers are auto-saved on every change. Last save: {saved_at}",
-                saved_at=format_dt_for_ui(last_autosave),
-            )
-        )
-
-        confirm_submit = st.checkbox(
-            tr(
-                "Cevaplarımı göndermek istediğime eminim. (Gönderdikten sonra değiştiremezsiniz.)",
-                "I confirm that I want to submit my answers. (You cannot change them after submission.)",
-            ),
-            key=f"confirm_submit_checkbox_{active_session}_{student_id_clean}",
-        )
-        if st.button(tr("Cevapları Gönder ve Puanla", "Submit Answers and Score"), type="primary", disabled=not confirm_submit):
-            if get_existing_submission(student_id_clean, active_session) is not None:
-                st.info(
-                    tr(
-                        "Bu oturum için cevaplarınız zaten kaydedilmiş.",
-                        "Your answers for this session are already recorded.",
-                    )
-                )
-                st.stop()
-
-            score, scored = _score_quiz_answers(questions, [ans["given"] for ans in answers])
-
-            render_submission_score_summary(
-                score,
-                _question_feedback_from_scored(scored),
-                recorded=False,
-            )
-            st.info(
-                tr(
-                    "Sonucunuz kaydedildi. Quiz süresi bittikten sonra açıklama/yorum yazabileceksiniz.",
-                    "Your result has been saved. You can write explanations/comments after quiz time ends.",
-                )
-                if comment_enabled
-                else tr("Sonucunuz kaydedildi.", "Your result has been saved.")
-            )
-
-            record_result(student_id_clean, student_name_clean, teacher_name_clean, active_session, score, scored)
-            _clear_quiz_answer_snapshot(f"{active_session}:{student_id_clean}")
-            st.balloons()
 
     elif quiz_phase == "comment":
         comment_end_at = parse_iso_datetime(str(quiz_control.get("comment_end") or ""))
@@ -3432,3 +3643,4 @@ def main():
             st.balloons()
 if __name__ == "__main__":
     main()
+
