@@ -211,18 +211,17 @@ def _software_error_distribution(r: random.Random) -> tuple[int, list[int], list
 
 
 def _fabric_defect_distribution(r: random.Random) -> tuple[int, list[int], list[float]]:
-    fabric_length = r.choice([8, 10, 12, 15])
-    weights = r.choice(
-        [
-            (44, 32, 15, 6, 3),
-            (38, 35, 17, 7, 3),
-            (41, 30, 18, 8, 3),
-            (36, 37, 17, 7, 3),
-            (42, 29, 20, 6, 3),
-            (39, 34, 18, 6, 3),
-        ]
-    )
-    x_values = [0, 1, 2, 3, 4]
+    scenarios = [
+        (8, [0, 1, 2, 3, 4], (46, 28, 15, 7, 4)),
+        (8, [0, 1, 2, 3, 4, 5], (34, 27, 18, 11, 6, 4)),
+        (10, [0, 1, 2, 3, 4, 5], (31, 26, 20, 11, 7, 5)),
+        (10, [0, 1, 2, 3, 4, 5], (29, 24, 21, 13, 8, 5)),
+        (12, [0, 1, 2, 3, 4, 5], (28, 23, 20, 14, 9, 6)),
+        (12, [0, 1, 2, 3, 4, 5, 6], (24, 22, 19, 14, 10, 7, 4)),
+        (15, [0, 1, 2, 3, 4, 5, 6], (22, 20, 18, 15, 11, 8, 6)),
+        (15, [0, 1, 2, 3, 4, 5, 6], (19, 21, 18, 16, 12, 8, 6)),
+    ]
+    fabric_length, x_values, weights = r.choice(scenarios)
     return fabric_length, x_values, _weights_to_probabilities(weights)
 
 
@@ -250,6 +249,8 @@ def _build_q_backup_power_union(r: random.Random, is_en: bool, tolerance: float)
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "venn_prob",
@@ -289,6 +290,8 @@ def _build_q_hotel_chain_total_probability(r: random.Random, is_en: bool, tolera
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "probability_tree",
@@ -325,6 +328,8 @@ def _build_q_medical_test_bayes(r: random.Random, is_en: bool, tolerance: float)
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "probability_tree",
@@ -368,6 +373,8 @@ def _build_q_tv_sets_p_ge_1(r: random.Random, is_en: bool, tolerance: float) -> 
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "pmf_table",
@@ -430,6 +437,8 @@ def _build_q_factory_total_probability(r: random.Random, is_en: bool, tolerance:
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "probability_tree",
@@ -461,6 +470,8 @@ def _build_q_factory_bayes_machine3(r: random.Random, is_en: bool, tolerance: fl
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "probability_tree",
@@ -493,6 +504,8 @@ def _build_q_airbag_pmf_exact_two(r: random.Random, is_en: bool, tolerance: floa
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "pmf_bar",
@@ -525,6 +538,8 @@ def _build_q_vacuum_pdf_prob(r: random.Random, is_en: bool, tolerance: float) ->
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "piecewise_pdf_vacuum",
@@ -557,6 +572,8 @@ def _build_q_circuit_reliability(r: random.Random, is_en: bool, tolerance: float
             )
         ),
         "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
             "kind": "circuit_c123",
@@ -721,7 +738,7 @@ def _validate_q_fabric_expected_value(question: Question) -> None:
     question_id = "fabric_expected_value"
     answer, x_values, p_values, _ = _validate_pmf_visual(question_id, question)
     support = _validate_integer_support(question_id, x_values)
-    _ensure(support == list(range(0, len(support))), question_id, "support must be 0..4 defect counts")
+    _ensure(support == list(range(0, len(support))), question_id, "support must start at 0 and be consecutive")
     expected_answer = sum(x * p for x, p in zip(x_values, p_values))
     _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal expected value E(X)")
 

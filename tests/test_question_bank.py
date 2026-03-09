@@ -27,6 +27,23 @@ PERSONALIZED_BUILDERS = {
     "fabric_expected_value",
 }
 
+PROBABILITY_BOUNDED_BUILDERS = {
+    "backup_power_union",
+    "hotel_chain_total_probability",
+    "medical_test_bayes",
+    "tv_sets_p_ge_1",
+    "factory_total_probability",
+    "factory_bayes_machine3",
+    "airbag_pmf_exact_two",
+    "vacuum_pdf_prob",
+    "circuit_reliability",
+}
+
+NON_PROBABILITY_BUILDERS = {
+    "software_bug_variance",
+    "fabric_expected_value",
+}
+
 
 class QuestionBankInvariantsTest(unittest.TestCase):
     def _generate_question(self, question_id: str, student_id: str, quiz_session: str) -> dict:
@@ -74,6 +91,32 @@ class QuestionBankInvariantsTest(unittest.TestCase):
                 len(signatures),
                 1,
                 msg=f"{question_id}: builder should produce more than one personalized variant",
+            )
+
+    def test_probability_questions_declare_unit_interval_bounds(self) -> None:
+        for question_id in PROBABILITY_BOUNDED_BUILDERS:
+            for student_id in STUDENTS:
+                for quiz_session in SESSIONS:
+                    with self.subTest(question_id=question_id, student_id=student_id, quiz_session=quiz_session):
+                        question = self._generate_question(question_id, student_id, quiz_session)
+                        self.assertEqual(question.get("answer_min"), 0.0, msg=f"{question_id}: answer_min should be 0.0")
+                        self.assertEqual(question.get("answer_max"), 1.0, msg=f"{question_id}: answer_max should be 1.0")
+                        answer = float(question["answer"])
+                        self.assertGreaterEqual(answer, 0.0, msg=f"{question_id}: answer should stay >= 0")
+                        self.assertLessEqual(answer, 1.0, msg=f"{question_id}: answer should stay <= 1")
+
+    def test_non_probability_questions_can_exceed_one(self) -> None:
+        for question_id in NON_PROBABILITY_BUILDERS:
+            answers = []
+            for student_id in STUDENTS:
+                for quiz_session in SESSIONS:
+                    question = self._generate_question(question_id, student_id, quiz_session)
+                    self.assertIsNone(question.get("answer_min"), msg=f"{question_id}: answer_min should be unset")
+                    self.assertIsNone(question.get("answer_max"), msg=f"{question_id}: answer_max should be unset")
+                    answers.append(float(question["answer"]))
+            self.assertTrue(
+                any(answer > 1.0 for answer in answers),
+                msg=f"{question_id}: sampled variants should include an answer above 1.0",
             )
 
 

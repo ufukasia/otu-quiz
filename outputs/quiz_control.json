@@ -5,7 +5,7 @@
   "closed_at": "2026-03-07T13:00:12+03:00",
   "session_start": "2026-03-07T12:56:00+03:00",
   "session_end": "2026-03-07T13:16:00+03:00",
-  "answer_tolerance": 0.03,
+  "answer_tolerance": 0.05,
   "question_slots": [
     "factory_bayes_machine3",
     "factory_total_probability",

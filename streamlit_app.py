@@ -1069,16 +1069,41 @@ def check_answer(user_value: float, correct_value: float, abs_tol: float) -> boo
     return math.isclose(user_value, correct_value, rel_tol=0.0, abs_tol=_sanitize_answer_tolerance(abs_tol))
 
 
-def _sanitize_answer_value(value: Any) -> float:
-    """Ham değeri guvenli ve 0-1 araliginda cevaba cevirir."""
+def _question_answer_bounds(question: dict[str, Any] | None) -> tuple[float | None, float | None]:
+    """Soruya ozel min/max sinirlarini cozer."""
+    if not isinstance(question, dict):
+        return None, None
+
+    def _coerce_bound(raw: Any) -> float | None:
+        try:
+            normalized = float(raw)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(normalized):
+            return None
+        return normalized
+
+    min_value = _coerce_bound(question.get("answer_min"))
+    max_value = _coerce_bound(question.get("answer_max"))
+    if min_value is not None and max_value is not None and min_value > max_value:
+        min_value, max_value = max_value, min_value
+    return min_value, max_value
+
+
+def _sanitize_answer_value(value: Any, question: dict[str, Any] | None = None) -> float:
+    """Ham değeri guvenli ve soru sinirlarina uygun 3 ondalikli cevaba cevirir."""
     try:
         normalized = float(value)
     except (TypeError, ValueError):
         return 0.0
     if not math.isfinite(normalized):
         return 0.0
-    clipped = min(1.0, max(0.0, normalized))
-    return round(clipped, 2)
+    min_value, max_value = _question_answer_bounds(question)
+    if min_value is not None:
+        normalized = max(min_value, normalized)
+    if max_value is not None:
+        normalized = min(max_value, normalized)
+    return round(normalized, 3)
 
 
 def _score_quiz_answers(
@@ -1086,11 +1111,10 @@ def _score_quiz_answers(
     given_values: list[float],
 ) -> tuple[int, list[dict[str, Any]]]:
     """Verilen cevap listesini puanlar ve kayda uygun formatta dondurur."""
-    normalized_values = [_sanitize_answer_value(val) for val in given_values]
-    if len(normalized_values) < len(questions):
-        normalized_values.extend([0.0] * (len(questions) - len(normalized_values)))
-    else:
-        normalized_values = normalized_values[: len(questions)]
+    normalized_values = [
+        _sanitize_answer_value(given_values[idx] if idx < len(given_values) else 0.0, questions[idx])
+        for idx in range(len(questions))
+    ]
 
     score = 0
     scored: list[dict[str, Any]] = []
@@ -1243,8 +1267,15 @@ def _quiz_snapshot_signature(
     answers: list[dict[str, Any]],
     student_name: str,
     teacher_name: str,
+    questions: list[dict[str, Any]] | None = None,
 ) -> tuple[Any, ...]:
-    normalized_answers = tuple(_sanitize_answer_value(item.get("given", 0.0)) for item in answers)
+    normalized_answers = tuple(
+        _sanitize_answer_value(
+            item.get("given", 0.0),
+            questions[idx] if questions is not None and idx < len(questions) else None,
+        )
+        for idx, item in enumerate(answers)
+    )
     return (
         scope.strip(),
         student_name.strip(),
@@ -1253,13 +1284,18 @@ def _quiz_snapshot_signature(
     )
 
 
-def _quiz_snapshot_signature_from_record(scope: str, record: dict[str, Any]) -> tuple[Any, ...]:
+def _quiz_snapshot_signature_from_record(
+    scope: str,
+    record: dict[str, Any],
+    questions: list[dict[str, Any]] | None = None,
+) -> tuple[Any, ...]:
     answers = [{"given": record.get(f"q{idx}_given", 0.0)} for idx in range(1, QUIZ_SLOT_COUNT + 1)]
     return _quiz_snapshot_signature(
         scope,
         answers,
         str(record.get("student_name") or ""),
         str(record.get("teacher_name") or ""),
+        questions,
     )
 
 
@@ -1268,6 +1304,7 @@ def _store_quiz_answer_snapshot(
     answers: list[dict[str, Any]],
     student_name: str = "",
     teacher_name: str = "",
+    questions: list[dict[str, Any]] | None = None,
 ) -> bool:
     """Quiz cevaplarini Öğrenci+oturum bazli sunucu taslagi olarak saklar."""
     session_id, student_id = _parse_quiz_scope(scope)
@@ -1282,14 +1319,17 @@ def _store_quiz_answer_snapshot(
         "teacher_name": teacher_name.strip(),
     }
     for idx, item in enumerate(answers, start=1):
-        row[f"q{idx}_given"] = _sanitize_answer_value(item.get("given", 0.0))
+        row[f"q{idx}_given"] = _sanitize_answer_value(
+            item.get("given", 0.0),
+            questions[idx - 1] if questions is not None and idx - 1 < len(questions) else None,
+        )
 
-    signature = _quiz_snapshot_signature(scope, answers, row["student_name"], row["teacher_name"])
+    signature = _quiz_snapshot_signature(scope, answers, row["student_name"], row["teacher_name"], questions)
     if st.session_state.get(LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY) == signature:
         return False
 
     existing_record = _read_quiz_answer_snapshot_record(scope)
-    if existing_record is not None and _quiz_snapshot_signature_from_record(scope, existing_record) == signature:
+    if existing_record is not None and _quiz_snapshot_signature_from_record(scope, existing_record, questions) == signature:
         st.session_state[LAST_QUIZ_SNAPSHOT_SIGNATURE_STATE_KEY] = signature
         st.session_state[ANSWER_AUTOSAVE_AT_STATE_KEY] = str(existing_record.get("updated_at") or row["updated_at"])
         return False
@@ -1330,23 +1370,27 @@ def _store_quiz_answer_snapshot(
     return True
 
 
-def _read_quiz_answer_snapshot(scope: str, question_count: int) -> list[float] | None:
+def _read_quiz_answer_snapshot(scope: str, questions: list[dict[str, Any]]) -> list[float] | None:
     """Scope'a ait quiz taslagindan cevap listesini okur."""
     record = _read_quiz_answer_snapshot_record(scope)
     if record is None:
         return None
 
     answers: list[float] = []
-    for idx in range(1, question_count + 1):
+    for idx in range(1, len(questions) + 1):
         raw = record.get(f"q{idx}_given", 0.0)
         if pd.isna(raw):
             answers.append(0.0)
         else:
-            answers.append(_sanitize_answer_value(raw))
+            answers.append(_sanitize_answer_value(raw, questions[idx - 1]))
     return answers
 
 
-def _read_quiz_answers_from_session_state(quiz_session: str, student_id: str, question_count: int) -> list[float] | None:
+def _read_quiz_answers_from_session_state(
+    quiz_session: str,
+    student_id: str,
+    questions: list[dict[str, Any]],
+) -> list[float] | None:
     """Widget session_state uzerinden son cevaplari okur."""
     session_clean = quiz_session.strip()
     student_clean = student_id.strip()
@@ -1355,11 +1399,11 @@ def _read_quiz_answers_from_session_state(quiz_session: str, student_id: str, qu
 
     answers: list[float] = []
     found_any = False
-    for idx in range(1, question_count + 1):
+    for idx in range(1, len(questions) + 1):
         key = f"ans_{session_clean}_{student_clean}_{idx}"
         if key in st.session_state:
             found_any = True
-        answers.append(_sanitize_answer_value(st.session_state.get(key, 0.0)))
+        answers.append(_sanitize_answer_value(st.session_state.get(key, 0.0), questions[idx - 1]))
 
     if not found_any:
         return None
@@ -1403,13 +1447,13 @@ def _auto_submit_expired_quiz_from_snapshot(
     scope = f"{session_clean}:{student_id_clean}"
     snapshot_record = _read_quiz_answer_snapshot_record(scope)
     if snapshot_record is None:
-        snapshot = _read_quiz_answers_from_session_state(session_clean, student_id_clean, len(questions))
+        snapshot = _read_quiz_answers_from_session_state(session_clean, student_id_clean, questions)
         if snapshot is None:
             return None
     else:
-        snapshot = _read_quiz_answer_snapshot(scope, len(questions))
+        snapshot = _read_quiz_answer_snapshot(scope, questions)
         if snapshot is None:
-            snapshot = _read_quiz_answers_from_session_state(session_clean, student_id_clean, len(questions))
+            snapshot = _read_quiz_answers_from_session_state(session_clean, student_id_clean, questions)
         if snapshot is None:
             return None
 
@@ -3160,7 +3204,7 @@ def _render_quiz_answer_phase_fragment(
         return
 
     violation_scope = f"{active_session}:{student_id_clean}"
-    saved_answers = _read_quiz_answer_snapshot(violation_scope, len(questions))
+    saved_answers = _read_quiz_answer_snapshot(violation_scope, questions)
     answers: list[dict[str, Any]] = []
     for row_start in range(0, len(questions), 2):
         row_questions = questions[row_start : row_start + 2]
@@ -3171,16 +3215,24 @@ def _render_quiz_answer_phase_fragment(
                 render_question_card(q["title"], q["text"], idx, language=selected_language)
                 default_value = 0.0
                 if saved_answers is not None and idx - 1 < len(saved_answers):
-                    default_value = _sanitize_answer_value(saved_answers[idx - 1])
-                user_value = st.number_input(
-                    tr("Cevabın (0-1 arası, 2 ondalık)", "Your answer (0-1, 2 decimals)"),
-                    key=f"ans_{active_session}_{student_id_clean}_{idx}",
-                    min_value=0.0,
-                    max_value=1.0,
-                    step=0.01,
-                    format="%.2f",
-                    value=float(default_value),
+                    default_value = _sanitize_answer_value(saved_answers[idx - 1], q)
+                min_value, max_value = _question_answer_bounds(q)
+                answer_label = (
+                    tr("Cevabın (0-1 arası, 3 ondalık)", "Your answer (0-1, 3 decimals)")
+                    if min_value == 0.0 and max_value == 1.0
+                    else tr("Cevabın (3 ondalık)", "Your answer (3 decimals)")
                 )
+                input_kwargs: dict[str, Any] = {
+                    "key": f"ans_{active_session}_{student_id_clean}_{idx}",
+                    "step": 0.001,
+                    "format": "%.3f",
+                    "value": float(default_value),
+                }
+                if min_value is not None:
+                    input_kwargs["min_value"] = float(min_value)
+                if max_value is not None:
+                    input_kwargs["max_value"] = float(max_value)
+                user_value = st.number_input(answer_label, **input_kwargs)
                 answers.append(
                     {
                         "given": user_value,
@@ -3196,6 +3248,7 @@ def _render_quiz_answer_phase_fragment(
         answers,
         student_name_clean,
         teacher_name_clean,
+        questions,
     )
     last_autosave = str(st.session_state.get(ANSWER_AUTOSAVE_AT_STATE_KEY) or "")
     st.caption(
@@ -3602,7 +3655,7 @@ def main():
                     if pd.notna(given_val):
                         st.text_input(
                             locked_answer_label,
-                            value=f"{float(given_val):.2f}",
+                            value=f"{float(given_val):.3f}",
                             disabled=True,
                             key=f"locked_ans_{idx}",
                         )
