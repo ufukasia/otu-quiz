@@ -1,0 +1,1792 @@
+% !TeX program = xelatex
+% !BIB program = biber
+\documentclass[light]{lutbeamer}
+\usepackage{pgfpages}
+\usepackage{ragged2e}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage{fontawesome5}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\pgfplotsset{compat=1.18}
+\addbibresource{references.bib}
+
+\setdepartment{OSTIM Teknik Üniversitesi}
+\institute{}
+\author[Mühendislik Fakültesi]{\\
+Prof.~Dr.~Yalçın ATA \\
+Prof.~Dr.~Arif DEMİR \\
+Dr.~Öğr.~Üyesi~Muhammed ELMNEFİ \\
+Dr.~Öğr.~Üyesi~Haydar KILIÇ \\
+Dr.~Öğr.~Üyesi~Emel GÜVEN \\
+Dr.~Öğr.~Üyesi~Ufuk ASIL \\
+Öğr.~Gör.~Sema ÇİFTÇİ
+}
+\title{MATH 204 -- Olasılık ve İstatistik}
+\subtitle{Hafta 14: Vize Öncesi Zor Düzey 20 Soru}
+\date{2025--2026 Bahar Dönemi}
+
+\definecolor{probExampleGreen}{HTML}{2E7D32}
+\definecolor{probInfoGray}{HTML}{4B5563}
+\definecolor{probResultOrange}{HTML}{FF8621}
+
+\setbeamercolor{block title example}{fg=white,bg=probExampleGreen}
+\setbeamercolor{block body example}{fg=black,bg=probExampleGreen!8}
+
+\newenvironment{infoblock}[1]
+{
+    \setbeamercolor{block title}{fg=white,bg=probInfoGray}
+    \setbeamercolor{block body}{fg=black,bg=probInfoGray!10}
+    \begin{block}{#1}
+}
+{
+    \end{block}
+}
+
+\newenvironment{noteblock}[1]
+{
+    \begin{infoblock}{#1}
+}
+{
+    \end{infoblock}
+}
+
+\newenvironment{resultblock}[1]
+{
+    \setbeamercolor{block title}{fg=white,bg=probResultOrange}
+    \setbeamercolor{block body}{fg=black,bg=probResultOrange!12}
+    \begin{block}{#1}
+}
+{
+    \end{block}
+}
+
+\newcommand{\solutionghost}[1]{{\color{red!45!black}#1}}
+\newcommand{\solutiontext}[1]{{\color{red!85!black}#1}}
+\newcommand{\ghoststep}[2]{\textbf{\solutionghost{Adım #1.}}~\solutionghost{#2}\par\vspace{0.08em}}
+\newcommand{\ghostmath}[1]{%
+\begingroup
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowdisplayshortskip}{3pt}
+\[
+\color{red!45!black}
+#1
+\]
+\endgroup
+\vspace{0.05em}}
+\newcommand{\solutionstep}[2]{\textbf{\solutiontext{Adım #1.}}~\solutiontext{#2}\par\vspace{0.08em}}
+\newcommand{\solutionmath}[1]{%
+\begingroup
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowdisplayshortskip}{3pt}
+\[
+\color{red!85!black}
+#1
+\]
+\endgroup
+\vspace{0.05em}}
+\newcommand{\solutionfinal}[1]{%
+\vfill
+{\color{probResultOrange}\rule{\linewidth}{0.8pt}\par}
+\vspace{0.2em}
+\noindent\textbf{\solutiontext{Sonuç:}}~\solutiontext{#1}}
+\newcommand{\solutionsetup}[3]{%
+\noindent\solutiontext{\textbf{Soru türü:} #1 \quad \textbf{Araç:} #2 \quad \textbf{Neden:} #3}\par
+\vspace{0.2em}}
+\newcommand{\solutionmistake}[1]{%
+\noindent{\color{red!75!black}\textbf{Sık hata:} #1}\par
+\vspace{0.15em}}
+
+\setcounter{tocdepth}{2}
+
+\AtBeginSection[]{
+  \begin{frame}{Sunum Planı}
+    \scriptsize
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \tableofcontents[sections={1-3}, currentsection]
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \tableofcontents[sections={4-7}, currentsection]
+      \end{column}
+    \end{columns}
+  \end{frame}
+}
+
+\begin{document}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{
+  \begin{beamercolorbox}[wd=\paperwidth, ht=10pt, dp=1pt]{footline}
+    \usebeamerfont{footline}
+    \begin{tikzpicture}[remember picture,overlay]
+      \node[anchor=south west, xshift=10mm, yshift=.4mm]
+      at (current page.south west)
+      {\insertshortauthor,~\department};
+    \end{tikzpicture}
+    \begin{tikzpicture}[remember picture,overlay]
+      \node[anchor=south east, xshift=-5mm, yshift=0.5mm]
+      at (current page.south east)
+      {\insertframenumber \,/\, \inserttotalframenumber};
+    \end{tikzpicture}
+  \end{beamercolorbox}
+}
+
+\begin{frame}<article:0>[plain,noframenumbering]
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=center, at=(current page.center), inner sep=0pt] {
+      \includegraphics[width=\paperwidth, height=\paperheight]{logos/background_figure.jpg}
+    };
+  \end{tikzpicture}
+\end{frame}
+
+{
+  \setbeamertemplate{footline}{
+    \begin{beamercolorbox}[wd=\paperwidth, ht=10pt, dp=1pt]{footline}
+      \usebeamerfont{footline}
+      \begin{tikzpicture}[remember picture,overlay]
+        \node[anchor=south west, xshift=10mm, yshift=.4mm, align=left]
+        at (current page.south west)
+        {\tiny Şablon bağlantısı: \href{https://github.com/ufukasia/Ostim-Teknik--niversitesi-Yaz-l-m-M-hendisli-i---Lutbeamer-egitim-i-eri-i-haz-rlama-}{GitHub}.};
+      \end{tikzpicture}
+      \begin{tikzpicture}[remember picture,overlay]
+        \node[anchor=south east, xshift=-5mm, yshift=0.5mm]
+        at (current page.south east)
+        {\insertframenumber \,/\, \inserttotalframenumber};
+      \end{tikzpicture}
+    \end{beamercolorbox}
+  }
+  \setbeamerfont{title}{size=\Large}
+  \setbeamerfont{author}{size=\scriptsize}
+  \setbeamerfont{subtitle}{size=\small}
+  \setbeamerfont{date}{size=\footnotesize}
+  \maketitle{}
+}
+
+\begin{frame}{İçindekiler}
+  \scriptsize
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \tableofcontents[sections={1-3}]
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \tableofcontents[sections={4-7}]
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{Hafta Çerçevesi}
+\subsection{Hedef}
+
+\begin{frame}[t]{Haftanın Hedefi ve Kapsamı}
+\textbf{Amaç}
+\begin{itemize}
+  \item Yaklaşan vize sınavı öncesinde genel tekrar yapılmasını sağlamak.
+  \item Temel olasılık kavramlarını ileri düzey problem çözümleriyle pekiştirmek.
+  \item Sınav formatına uygun \textbf{zor düzey} sorular üzerinden analiz yeteneğini geliştirmek.
+\end{itemize}
+
+\vspace{0.4em}
+\textbf{İçerik Dağılımı}
+\begin{enumerate}
+    \item Örnek Uzay, Olaylar ve Olay Cebiri
+    \item Bağımsızlık, Koşullu Olasılık ve Bayes Kuralı
+    \item Ayrık ve Sürekli Rassal Değişkenler ile Olasılık Dağılımları
+\end{enumerate}
+\end{frame}
+
+\subsection{Genel Strateji}
+\begin{frame}[t]{Problem Çözüm Stratejileri}
+\small
+\begin{columns}[T,onlytextwidth]
+  \begin{column}{0.48\textwidth}
+    \textbf{Olasılık ve Olay Sorularında}
+    \begin{itemize}
+      \item Önce deneyin işleyişini anlayarak \textbf{örnek uzayı} netleştirin.
+      \item Verilenleri ve istenenleri kesişim, birleşim veya tümleyen olarak \textbf{kümelere} dökün.
+      \item Koşullu olasılık ve Bayes teoremi için tam olasılık yasasını kurun.
+    \end{itemize}
+  \end{column}
+  \begin{column}{0.48\textwidth}
+    \textbf{Dağılım ve Değişken Sorularında}
+    \begin{itemize}
+      \item Değişkenin ayrık mı yoksa sürekli mi olduğuna baştan karar verin.
+      \item Fonksiyonun \textbf{destek (tanım) kümesini} belirleyerek sınırları yazın.
+      \item Olasılık fonsiyonu değerleri toplamı/integrali \(1\) olmalıdır ilkesiyle bilinmeyen parametreleri bulun.
+    \end{itemize}
+  \end{column}
+\end{columns}
+
+\vspace{0.6em}
+\begin{infoblock}{Problem Akışı}
+\textbf{Soru \(\rightarrow\) Soru Durağı \(\rightarrow\) Tam Çözüm} zinciri ile ilerlenerek, çözüm stratejisinin öğrenci tarafından adım adım düşünülmesi hedeflenmektedir.
+\end{infoblock}
+\end{frame}
+
+\section{Olay Cebiri ve Bağımsızlık}
+\subsection{Örnek Uzay ve Kümeler}
+
+\begin{frame}[t]{Soru 1: İki Zar Olayları}
+\footnotesize
+İki farklı zar aynı anda atılıyor.
+
+\[
+A=\{\text{toplam } \ge 9\},\qquad
+B=\{\text{en az bir zar }2\},\qquad
+C=\{\text{ilk zar }>4\}.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(A\), \(B\), \(C\) olaylarını elemanlarıyla yazınız.
+  \item[B.] \(A\cap B\), \(A\cap C\), \(B\cap C\), \((A\cup B)\cap C\) bulunuz.
+  \item[C.] \(A\) ile \(B\) bağımsız mı?
+  \item[D.] \(B\) ile \(C\) ayrık mı?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 1: Çözüm İçin Durak}
+\scriptsize
+\solutionghost{
+\textbf{Kurulum}
+\[
+\Omega=\{(i,j): i,j\in\{1,2,3,4,5,6\}\}.
+\]
+\[
+A=\{\text{toplam } \ge 9\},\qquad
+B=\{\text{en az bir zar }2\},\qquad
+C=\{\text{ilk zar }>4\}.
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item \(A\)'nın elemanlarını yazarken hangi toplamlar mümkündür?
+  \item \(B\cap C\) boş mu, değil mi?
+  \item Bağımsızlık için hangi eşitliği test edeceksiniz?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=12]{Soru 1: Çözüm}
+\scriptsize
+\solutionsetup{olay cebiri ve bağımsızlık}{örnek uzay, küme işlemleri, bağımsızlık testi}{istenenlerin tamamı olayların elemanları ve kesişimleri üzerinden okunur.}
+\solutionmistake{Ayrık olmak ile bağımsız olmak aynı şey değildir; boş kesişim çoğu zaman bağımsızlık vermez.}
+\solutionstep{1}{Önce olayları açık küme biçiminde yazarak kesişimleri görünür hale getiriyoruz.}
+\solutionmath{
+\begin{aligned}
+A={}&\{(3,6),(4,5),(5,4),(6,3),(4,6),\\
+& (5,5),(6,4),(5,6),(6,5),(6,6)\},\\
+B={}&\{(2,1),(2,2),(2,3),(2,4),(2,5),(2,6),\\
+& (1,2),(3,2),(4,2),(5,2),(6,2)\},\\
+C={}&\{(5,j),(6,j):j=1,\ldots,6\}.
+\end{aligned}
+}
+\solutionmath{
+\begin{aligned}
+A\cap B&=\varnothing,\\
+A\cap C&=\{(5,4),(5,5),(5,6),(6,3),(6,4),(6,5),(6,6)\},\\
+B\cap C&=\{(5,2),(6,2)\}.
+\end{aligned}
+}
+
+\solutionstep{2}{Önce \(A\cup B\) kümesini düşünüp sonra bunu \(C\) ile kesiyoruz.}
+\solutionmath{
+(A\cup B)\cap C=\{(5,2),(5,4),(5,5),(5,6),(6,2),(6,3),(6,4),(6,5),(6,6)\}.
+}
+
+\solutionstep{3}{Bağımsızlık şartı olan \(P(A\cap B)=P(A)P(B)\) ve ayrıklık şartı olan \(B\cap C=\varnothing\) eşitliklerini kontrol ediyoruz.}
+\solutionmath{
+P(A\cap B)=0,\qquad
+P(A)P(B)=\frac{10}{36}\cdot\frac{11}{36}>0.
+}
+\solutionfinal{Bu zar bağlamında \(A\) ile \(B\) birlikte olamadığı için bağımsız değildir; ayrıca \(B\) ile \(C\) aynı atışta birlikte gerçekleşebildiğinden ayrık da değildir.}
+\end{frame}
+
+\begin{frame}[t]{Soru 2: Üç Üründe Hasar}
+\footnotesize
+Bir üretim hattından art arda üç ürün seçiliyor; her ürün hasarlı (\(H\))
+veya sağlam (\(S\)) olabilir.
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] En ayrıntılı örnek uzayı \(\Omega\) ile yazınız.
+  \item[B.] \(A\): tam bir hasarlı, \(B\): ilk ürün hasarlı, \(C\): son ürün sağlam.
+  \item[C.] Eş olasılıklı temel sonuçlarla \(P(A)\), \(P(B)\), \(P(C)\) bulunuz.
+  \item[D.] \(A\) ile \(B\) bağımsız mı?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 2: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+\Omega=\{HHH,HHS,HSH,HSS,SHH,SHS,SSH,SSS\}.
+\]
+
+\[
+A=\{\text{tam bir hasarlı}\},\quad
+B=\{\text{ilk ürün hasarlı}\},\quad
+C=\{\text{son ürün sağlam}\}.
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Her olay kaç temel sonuç içeriyor?
+  \item \(A\cap B\) içinde hangi diziler kalıyor?
+  \item Bağımsızlık için hangi iki niceliği karşılaştırmanız gerekiyor?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=10]{Soru 2: Çözüm}
+\scriptsize
+\solutionsetup{eş olasılıklı örnek uzay ve bağımsızlık}{sayma, eleman sayısı, bağımsızlık testi}{temel sonuçlar eş olasılıklı olduğundan önce olayları saymak gerekir.}
+\solutionmistake{Bağımsızlık için yalnızca \(A\cap B\) sayılmaz; mutlaka \(P(A\cap B)=P(A)P(B)\) karşılaştırması yapılır.}
+\solutionstep{1}{Önce olayları açıkça yazıp eleman sayılarını buluyoruz; çünkü olasılıklar doğrudan bu sayılardan gelecek.}
+\solutionmath{
+\Omega=\{HHH,HHS,HSH,HSS,SHH,SHS,SSH,SSS\}.
+}
+\solutionmath{
+A=\{HSS,SHS,SSH\},\quad
+B=\{HHH,HHS,HSH,HSS\},\quad
+C=\{HHS,HSS,SHS,SSS\}.
+}
+\solutionmath{
+|A|=3,\qquad |B|=4,\qquad |C|=4
+\Longrightarrow
+P(A)=\frac{3}{8},\quad P(B)=\frac{1}{2},\quad P(C)=\frac{1}{2}.
+}
+
+\solutionstep{2}{\(A\) ve \(B\)'nin ortak sonucu yalnızca \(HSS\)'dir.}
+\solutionmath{
+A\cap B=\{HSS\},\qquad P(A\cap B)=\frac{1}{8}.
+}
+
+\solutionstep{3}{İki olayın bağımsız olması için gereken \(P(A\cap B)=P(A)P(B)\) şartını test ediyoruz.}
+\solutionmath{
+P(A\cap B)=\frac{1}{8},\qquad P(A)P(B)=\frac{3}{8}\cdot\frac{1}{2}=\frac{3}{16}.
+}
+\solutionfinal{Bu üretim örneğinde “tam bir hasarlı” bilgisi, ilk ürünün hasarlı olmasıyla ilişkili çıktığı için iki olay bağımsız değildir.}
+\end{frame}
+
+\begin{frame}[t]{Soru 3: Tolerans ve Görsel Kontrol}
+\footnotesize
+Bir parçanın tolerans içinde olması olayı \(T\), görsel kontrolden geçmesi olayı \(G\) olsun.
+\[
+P(T)=0.6,\qquad P(G)=0.5,\qquad P(T\cup G)=0.8.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(P(T\cap G)\) bulunuz.
+  \item[B.] \(P(T\mid G)\) ve \(P(G\mid T)\) bulunuz.
+  \item[C.] \(T\) ile \(G\) bağımsız mı?
+  \item[D.] \(P(T'\cap G)\) ve \(P(T'\cup G')\) bulunuz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 3: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+P(T)=0.6,\qquad P(G)=0.5,\qquad P(T\cup G)=0.8.
+\]
+
+\textbf{İlk hangi kural?}
+\[
+P(T\cup G)=P(T)+P(G)-P(T\cap G).
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Önce \(P(T\cap G)\) bulunmadan hangi nicelikler hesaplanamaz?
+  \item Bağımsızlık için hangi eşitlik test edilecek?
+  \item Tamamlayıcı olaylar hangi kısa ilişkiyle yazılabilir?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=6]{Soru 3: Çözüm}
+\scriptsize
+\solutionsetup{birleşim, koşullu olasılık ve bağımsızlık}{birlik formülü, koşullu olasılık tanımı, tamamlayıcı olaylar}{verilen üç sayıdan ortak olayı çekmeden diğer adımlar kurulamaz.}
+\solutionmistake{\(P(A\mid B)\) ile \(P(B\mid A)\) aynı değildir; hangi bilginin paydayı daralttığını açık yazın.}
+\solutionstep{1}{Önce birleşim formülüyle ortak olasılığı buluyoruz; çünkü koşullu olasılıklar bu değere dayanır.}
+\solutionmath{
+P(T\cap G)=P(T)+P(G)-P(T\cup G)=0.6+0.5-0.8=0.3.
+}
+
+\solutionstep{2}{Koşullu olasılıkları doğrudan tanımdan yazıyoruz.}
+\solutionmath{
+P(T\mid G)=\frac{P(T\cap G)}{P(G)}=\frac{0.3}{0.5}=0.6,\qquad
+P(G\mid T)=\frac{P(T\cap G)}{P(T)}=\frac{0.3}{0.6}=0.5.
+}
+
+\solutionstep{3}{Bağımsızlık için \(P(T\cap G)=P(T)P(G)\) şartını ve tamamlayıcı olayları kontrol ediyoruz.}
+\solutionmath{
+P(T\cap G)=0.3,\qquad P(T)P(G)=0.6\cdot 0.5=0.3 \implies P(T\cap G)=P(T)P(G).
+}
+\solutionmath{
+P(T'\cap G)=P(G)-P(T\cap G)=0.2,\qquad
+P(T'\cup G')=1-P(T\cap G)=0.7.
+}
+\solutionfinal{Bu kalite kontrol bağlamında tolerans içinde olmak ile görsel kontrolden geçmek bağımsız görünüyor; ancak aynı parça iki koşulu birden sağlayabildiği için olaylar ayrık değildir.}
+\end{frame}
+
+\begin{frame}[t]{Soru 4: Üç Bağımsız Proje}
+\footnotesize
+Birbirinden tamamen bağımsız kurullarda değerlendirilen üç farklı proje için; \(A\) projesinin onaylanması olayı, \(K\) projesinin onaylanması olayı ve \(U\) projesinin onaylanması olayı olsun.
+\[
+P(A)=P(K)=P(U)=\frac12,\qquad
+P(A\cap K)=P(A\cap U)=P(K\cap U)=\frac14,
+\]
+\[
+P(A\cap K\cap U)=\frac18.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] İkili bağımsızlığı gösteriniz.
+  \item[B.] Tam bağımsızlığı gösteriniz.
+  \item[C.] \(P(A\cup K\cup U)\) değerini bulunuz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 4: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+P(A)=P(K)=P(U)=\frac12,
+\]
+
+\[
+P(A\cap K)=P(A\cap U)=P(K\cap U)=\frac14,\qquad
+P(A\cap K\cap U)=\frac18.
+\]
+
+\textbf{İlk hangi araç?}
+\[
+P(A\cap K)\stackrel{?}{=}P(A)P(K),\qquad
+P(A\cap K\cap U)\stackrel{?}{=}P(A)P(K)P(U).
+\]
+
+\textbf{Kendinize sorun}
+\[
+P(A\cup K\cup U)=P(A)+P(K)+P(U)-P(A\cap K)-P(A\cap U)-P(K\cap U)+P(A\cap K\cap U).
+\]
+}
+\end{frame}
+
+\begin{frame}[t,shrink=3]{Soru 4: Çözüm}
+\scriptsize
+\solutionsetup{ikili/tam bağımsızlık ve birleşim}{çarpım testi, dahil etme-dışlama}{önce bağımsızlık düzeyini netleştirip sonra birleşim formülüne geçmek gerekir.}
+\solutionmistake{İkili bağımsızlık, otomatik olarak tam bağımsızlık anlamına gelmez; üçlü çarpım ayrıca kontrol edilir.}
+\solutionstep{1}{İlk olarak her çift için çarpım koşulunu test ederek ikili bağımsızlığı doğruluyoruz.}
+\solutionmath{
+P(A\cap K)=P(A\cap U)=P(K\cap U)=\frac14
+=\frac12\cdot\frac12.
+}
+
+\solutionstep{2}{Tam bağımsızlık için ayrıca \(P(A\cap K\cap U)=P(A)P(K)P(U)\) şartı sağlanmalıdır.}
+\solutionmath{
+P(A\cap K\cap U)=\frac18=P(A)P(K)P(U).
+}
+
+\solutionstep{3}{Birleşim olasılığını dahil etme-dışlama verir.}
+\solutionmath{
+P(A\cup K\cup U)=\frac12+\frac12+\frac12-\frac14-\frac14-\frac14+\frac18=\frac78.
+}
+\solutionfinal{Bu proje senaryosunda kararlar birbirini etkilemediği için hem ikili hem tam bağımsızlık sağlanır; en az bir projenin onay alma olasılığı da bu yüzden oldukça yüksektir.}
+\end{frame}
+
+\section{Koşullu Olasılık, Toplam Olasılık ve Bayes}
+\subsection{Koşullu Yapılar}
+
+\begin{frame}[t]{Soru 5: Sınıftan İki Öğrenci}
+\footnotesize
+Bir sınıfta 5 kadın ve 7 erkek öğrenci vardır. Rastgele iki öğrenci
+\textbf{yerine koymadan} seçiliyor.
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] İlk seçilen öğrenci kadın olduğuna göre, ikinci seçilenin erkek olma olasılığını bulunuz.
+  \item[B.] Rastgele seçilen her iki öğrencinin de kadın olma olasılığını hesaplayınız.
+  \item[C.] Öğrencilerden \textbf{en az birinin} kadın olduğu bilindiğine göre, her ikisinin de kadın olma olasılığını bulunuz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 5: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+5\text{ kadın},\qquad 7\text{ erkek},\qquad \text{yerine koymadan 2 seçim}.
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item İlk bilginin verdiği yeni havuz kaç kişiden oluşuyor?
+  \item “En az bir kadın” olayı doğrudan mı, tümleyenden mi daha rahat bulunur?
+  \item Son adımda hangi koşullu olasılık tanımı kullanılacak?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=6]{Soru 5: Çözüm}
+\scriptsize
+\solutionsetup{yerine koymadan koşullu olasılık}{daralan örnek uzay, çarpım kuralı, koşullu olasılık tanımı}{ilk seçimin bilgisi sonraki olasılıkları değiştirir.}
+\solutionmistake{Yeni bilgi geldikten sonra eski örnek uzayı kullanmayın; koşul havuzu küçültür.}
+\solutionstep{1}{İlk bilgi havuzu daralttığı için ikinci seçimi yeni toplam üzerinden okuyoruz.}
+\solutionmath{
+P(\text{2. erkek}\mid \text{1. kadın})=\frac{7}{11}.
+}
+
+\solutionstep{2}{İkinci koşullu olasılık için pay ve paydayı ayrı ayrı kuruyoruz.}
+\solutionmath{
+P(\text{iki kadın})=\frac{5}{12}\cdot\frac{4}{11}=\frac{5}{33}.
+}
+\solutionmath{
+P(\text{en az bir kadın})=1-P(\text{iki erkek})=1-\frac{7}{12}\cdot\frac{6}{11}=\frac{15}{22}.
+}
+
+\solutionstep{3}{Şimdi koşullu olasılık tanımını uyguluyoruz.}
+\solutionmath{
+P(\text{iki kadın}\mid \text{en az bir kadın})
+=\frac{P(\text{iki kadın})}{P(\text{en az bir kadın})}
+=\frac{5/33}{15/22}
+=\frac{2}{9}.
+}
+\solutionfinal{Sınıf bağlamında “en az bir kadın” bilgisi olasılığı ciddi biçimde değiştirir; bu yüzden yerine koymadan seçimlerde verilen ek bilgi mutlaka yeni havuzla okunmalıdır.}
+\end{frame}
+
+\begin{frame}[t]{Soru 6: Kırmızı ve Mavi Toplar}
+\footnotesize
+Bir torbada 6 kırmızı ve 4 mavi top vardır. Art arda iki top çekiliyor;
+yerine koyma yoktur.
+İlk topun kırmızı gelmesi olayı \(K_1\), ikinci topun mavi gelmesi olayı \(M_2\) olsun.
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] Ortak olasılığı bulunuz: \(P(K_1\cap M_2)\).
+  \item[B.] Koşulsuz olasılığı bulunuz: \(P(M_2)\).
+  \item[C.] Koşullu olasılığı bulunuz: \(P(M_2\mid K_1)\).
+  \item[D.] \(K_1\) ve \(M_2\) olaylarının bağımsız olup olmadığını inceleyiniz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 6: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+P(K_1)=\frac{6}{10},\qquad P(M_1)=\frac{4}{10}.
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Ortak olasılık için hangi çarpım kuralı yazılmalı?
+  \item \(P(M_2)\) doğrudan simetriyle mi, tam olasılıkla mı daha rahat bulunur?
+  \item Bağımsızlık testinde hangi iki sayı karşılaştırılacak?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=8]{Soru 6: Çözüm}
+\scriptsize
+\solutionsetup{koşullu/koşulsuz olasılık ve bağımsızlık}{çarpım kuralı, tam olasılık, bağımsızlık testi}{aynı torba örneğinde ortak, koşulsuz ve koşullu olasılıklar farklı niceliklerdir.}
+\solutionmistake{\(P(A\cap B)\), \(P(A)\) ve \(P(A\mid B)\) birbirinin yerine yazılamaz; önce hangi niceliğin istendiğini ayırın.}
+\solutionstep{A}{Ortak olasılığı çarpım kuralıyla yazıyoruz.}
+\solutionmath{
+P(K_1\cap M_2)=P(K_1)P(M_2\mid K_1)=\frac{6}{10}\cdot\frac{4}{9}=\frac{4}{15}.
+}
+
+\solutionstep{B}{İkinci topun mavi gelmesi olasılığı koşulsuz bir olasılıktır; hem doğrudan hem tam olasılıkla bulunabilir.}
+\solutionmath{
+P(M_2)=\frac{4}{10}=\frac{2}{5}
+=\frac49\cdot\frac{6}{10}+\frac39\cdot\frac{4}{10}.
+}
+
+\solutionstep{C}{İlk topun kırmızı geldiği bilgisi verildiğinde havuz 9 topa düşer ve bunların 4'ü mavidir.}
+\solutionmath{
+P(M_2\mid K_1)=\frac{4}{9}.
+}
+
+\solutionstep{D}{Bağımsızlık için \(P(K_1\cap M_2)=P(K_1)P(M_2)\) şartı sağlanmalıdır.}
+\solutionmath{
+P(K_1\cap M_2)=\frac{4}{15},\qquad P(K_1)P(M_2)=\frac{6}{10}\cdot\frac{2}{5}=\frac{6}{25}.
+}
+\solutionfinal{Torba bağlamında ilk çekiliş ikinciyi etkilediği için ortak, koşulsuz ve koşullu olasılıklar farklı çıkar; bu da olayların bağımsız olmadığını gösterir.}
+\end{frame}
+
+\begin{frame}[t]{Tablo Temelli Örnek: Sertifika Alt Uzayında Oran}
+\footnotesize
+\begin{columns}[T,onlytextwidth]
+    \begin{column}{0.56\textwidth}
+        Bir elektronik üretim tesisindeki teknisyenlerin ekip ve kalibrasyon sertifikası dağılımı:
+        
+        \begin{table}[]
+            \centering
+            \resizebox{0.88\textwidth}{!}{%
+            \begin{tabular}{@{}lccc@{}}
+                \toprule
+                & \textbf{Sertifikalı (K)} & \textbf{Sertifikasız} & \textbf{Toplam} \\ \midrule
+                \textbf{Otomasyon Ekibi (O)} & 150 & 30 & 180 \\
+                \textbf{Bakım Ekibi (B)} & 80 & 140 & 220 \\ \midrule
+                \textbf{Toplam} & \textbf{230} & \textbf{170} & \textbf{400} \\ \bottomrule
+            \end{tabular}%
+            }
+        \end{table}
+    
+        \small
+        \textbf{Soru:} Rastgele seçilen bir teknisyenin \textbf{sertifikalı (K)} olduğu biliniyorsa, bu kişinin \textbf{otomasyon ekibinde (O)} olma olasılığı nedir?
+    \end{column}
+    
+    \begin{column}{0.42\textwidth}
+        \onslide<2->{
+            \scriptsize
+            \textbf{Çözüm (İndirgenmiş Uzay):}
+            
+            Sadece ``Sertifikalı'' sütununa bakılır. Toplam \(230\) sertifikalı teknisyen vardır. Bunların \(150\)'si otomasyon ekibindedir.
+            \[
+            P(O\mid K)=\frac{150}{230}=\frac{15}{23}\approx 0.652
+            \]
+            
+            \vspace{0.2cm}
+            \textbf{Formül ile:}
+            \[
+            P(K)=\frac{230}{400},\qquad P(O\cap K)=\frac{150}{400}
+            \]
+            \[
+            P(O\mid K)=\frac{P(O\cap K)}{P(K)}
+            =\frac{150/400}{230/400}
+            =\frac{150}{230}
+            \]
+            
+            Sertifikalı bir teknisyen seçildiğinde otomasyon ekibinden gelme olasılığı yaklaşık \(\%65.2\)'dir.
+        }
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[t]{Soru 7: Üç Makine ve Bayes}
+\footnotesize
+Bir ürünün 1., 2. ve 3. makineden gelme olayları sırasıyla \(M_1\), \(M_2\), \(M_3\),
+ürünün hasarlı olması olayı ise \(H\) olsun.
+\[
+P(M_1)=0.25,\quad P(M_2)=0.50,\quad P(M_3)=0.25,
+\]
+\[
+P(H\mid M_1)=0.04,\quad P(H\mid M_2)=0.02,\quad P(H\mid M_3)=0.05.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(P(H)\) bulunuz.
+  \item[B.] \(P(M_3\mid H)\) bulunuz.
+  \item[C.] \(P(M_2\mid H')\) bulunuz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 7: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+P(M_1)=0.25,\quad P(M_2)=0.50,\quad P(M_3)=0.25.
+\]
+\[
+P(H\mid M_1)=0.04,\quad P(H\mid M_2)=0.02,\quad P(H\mid M_3)=0.05.
+\]
+
+\textbf{İlk hangi kural?}
+\[
+P(H)=\sum_{i=1}^{3} P(H\mid M_i)P(M_i).
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Bayes paydasında önce hangi toplam olasılık bulunmalı?
+  \item \(H'\) için hangi koşullu olasılıklar kullanılacak?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=7]{Soru 7: Çözüm}
+\footnotesize
+\solutionsetup{toplam olasılık ve Bayes}{ağırlıklı toplam, Bayes normalizasyonu}{gözlenen kusurdan kaynağa dönmek için önce toplam kusur oranı gerekir.}
+\solutionmistake{Bayes'te yön karıştırmayın; \(P(M_3\mid H)\) için pay kısmında \(P(H\mid M_3)\) gerekir.}
+\solutionstep{1}{Önce toplam hasarlı olasılığını buluyoruz; çünkü Bayes formülündeki payda bu değerdir.}
+\solutionmath{
+P(H)=\sum_{i=1}^{3}P(H\mid M_i)P(M_i)
+=0.25(0.04)+0.50(0.02)+0.25(0.05)
+=0.0325.
+}
+
+\solutionstep{2}{Hasarlı ürün gözlendiğinde Bayes kuralını uyguluyoruz.}
+\solutionmath{
+P(M_3\mid H)=\frac{P(H\mid M_3)P(M_3)}{P(H)}
+=\frac{0.05\cdot 0.25}{0.0325}
+=\frac{5}{13}\approx 0.3846.
+}
+
+\solutionstep{3}{Hasarsız ürün için yine Bayes kuralını bu kez \(H'\) üzerinden yazıyoruz.}
+\solutionmath{
+P(M_2\mid H')=\frac{P(H'\mid M_2)P(M_2)}{P(H')}
+=\frac{0.98\cdot 0.50}{1-0.0325}
+=\frac{196}{387}\approx 0.5065.
+}
+\solutionfinal{Hasarlı ürün görüldüğünde üçüncü makinenin payı yaklaşık \(\%38\) olur; hasarsız üründe ise ikinci makine yaklaşık \(\%51\) ile en olası kaynak görünür.}
+\end{frame}
+
+\begin{frame}[t]{Soru 8: Hastalık Testi}
+\footnotesize
+Bir tarama testinde kişinin hasta olma olayı \(H\), test sonucunun pozitif çıkması olayı \(+\) ile gösterilsin.
+\[
+P(H)=0.03,\qquad P(+\mid H)=0.92,\qquad P(+\mid H')=0.07.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(P(+)\) bulunuz.
+  \item[B.] \(P(H\mid +)\) bulunuz.
+  \item[C.] \(P(H\mid -)\) bulunuz.
+  \item[D.] Yorum yapınız.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 8: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+P(H)=0.03,\qquad P(+\mid H)=0.92,\qquad P(+\mid H')=0.07.
+\]
+
+\textbf{İlk hangi kural?}
+\[
+P(+)=P(+\mid H)P(H)+P(+\mid H')P(H').
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Bayes paydasında pozitif testin toplam olasılığı nasıl bulunur?
+  \item Negatif sonuç için \(P(-\mid H)\) ve \(P(-)\) nasıl yazılır?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=6]{Soru 8: Çözüm}
+\footnotesize
+\solutionsetup{Bayes ve tanı testi yorumu}{toplam olasılık, Bayes, tamamlayıcı olay}{test sonucu ile gerçek durum ters yönde okunacağı için önce toplam pozitiflik gerekir.}
+\solutionmistake{Duyarlılık \(P(+\mid H)\) ile pozitif çıkanın hasta olma olasılığı \(P(H\mid +)\) aynı değildir.}
+\solutionstep{1}{Pozitif test sonucu, hasta ve sağlıklı dallarının toplamından gelir; önce bu paydayı kuruyoruz.}
+\solutionmath{
+P(+)=P(+\mid H)P(H)+P(+\mid H')P(H')
+=0.92(0.03)+0.07(0.97)
+=0.0955.
+}
+
+\solutionstep{2}{Pozitif çıkan kişinin gerçekten hasta olma olasılığını Bayes ile buluyoruz.}
+\solutionmath{
+P(H\mid +)=\frac{P(+\mid H)P(H)}{P(+)}
+=\frac{0.92\cdot 0.03}{0.0955}
+=\frac{276}{955}\approx 0.289.
+}
+
+\solutionstep{3}{Negatif sonuç için aynı mantığı tamamlayıcı olayla kuruyoruz.}
+\solutionmath{
+P(H\mid -)=\frac{P(-\mid H)P(H)}{P(-)}
+=\frac{0.08\cdot 0.03}{1-0.0955}
+\approx 0.00265.
+}
+\solutionfinal{Bu testte pozitif sonuç alan kişinin gerçekten hasta olma olasılığı yaklaşık \(\%29\)'dur; yani düşük prevalans, yüksek duyarlılığa rağmen pozitif sonucun güvenini sınırlamaktadır.}
+\end{frame}
+
+\begin{frame}[t]{Neden Şimdi Rassal Değişken?}
+\small
+\begin{itemize}
+  \item Buraya kadar olayların olasılığını hesapladık; şimdi her sonucu bir sayıya dönüştüren \(X\) ile çalışacağız.
+  \item Yeni hedef, sadece ``olay oldu mu?'' değil, ``hangi değer ne kadar olası?'' sorusunu tek bir dağılım nesnesiyle okumaktır.
+  \item Bu bölümde PMF, CDF ve PDF; rassal değişkenin ayrık mı sürekli mi olduğunu netleştirmek için kullanılacak.
+\end{itemize}
+
+\begin{infoblock}{Neden bu geçiş önemli?}
+Bayes ve koşullu olasılık bize olaylar arasında yön seçmeyi öğretti; şimdi aynı düşünceyi bir dağılımı okumaya ve birikimli olasılığı yorumlamaya taşıyoruz.
+\end{infoblock}
+\end{frame}
+
+\section{Rassal Değişkenler ve Dağılımlar}
+\subsection{PMF ve CDF}
+
+\begin{frame}[t]{Soru 9: 8 Noktalı Örnek Uzaydan \(X\)}
+\footnotesize
+\[
+S=\{1,2,3,4,5,6,7,8\}
+\]
+ve tüm temel sonuçlar eş olasılıklıdır.
+
+\[
+X(\omega)=
+\begin{cases}
+0, & \omega\in\{1,2\},\\
+1, & \omega\in\{3,4,5\},\\
+2, & \omega\in\{6,7\},\\
+4, & \omega=8.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] PMF'yi bulunuz.
+  \item[B.] \(F(x)\) fonksiyonunu parçalı yazınız.
+  \item[C.] \(P(1\le X<4)\) ve \(P(X\neq 2)\) bulunuz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 9: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+X(\omega)=
+\begin{cases}
+0, & \omega\in\{1,2\},\\
+1, & \omega\in\{3,4,5\},\\
+2, & \omega\in\{6,7\},\\
+4, & \omega=8.
+\end{cases}
+\]
+
+\textbf{Kendinize sorun}
+\[
+\begin{array}{c|cccc}
+x & 0 & 1 & 2 & 4\\ \hline
+f(x) & ? & ? & ? & ? \\
+F(x) & ? & ? & ? & ?
+\end{array}
+\]
+\begin{itemize}
+  \item Her \(x\) değerini kaç temel sonuç üretiyor?
+  \item CDF'yi soldan sağa hangi sırayla biriktireceksiniz?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=6]{Soru 9: Çözüm}
+\scriptsize
+\solutionsetup{ayrık rassal değişken, PMF ve CDF}{eş olasılıklı sayma, birikimli toplama}{önce tekil kütleler bulunmadan CDF kurulamaz.}
+\solutionmistake{CDF değeri tek noktadaki kütle değil, o noktaya kadar birikmiş olasılıktır.}
+\solutionstep{1}{Önce her \(x\) değerini üreten temel sonuç sayısını sayarak PMF'yi yazıyoruz.}
+\solutionmath{
+P(X=0)=\frac28=\frac14,\qquad
+P(X=1)=\frac38,\qquad
+P(X=2)=\frac28=\frac14,\qquad
+P(X=4)=\frac18.
+}
+
+\solutionstep{2}{Sonra bu kütleleri soldan sağa toplayarak CDF'yi açıkça kuruyoruz.}
+\solutionmath{
+F(x)=
+\begin{cases}
+0, & x<0,\\
+\frac14, & 0\le x<1,\\
+\frac58, & 1\le x<2,\\
+\frac78, & 2\le x<4,\\
+1, & x\ge 4.
+\end{cases}
+}
+
+\solutionstep{3}{İstenen aralık olasılıklarını PMF üzerinden topluyoruz.}
+\solutionmath{
+P(1\le X<4)=P(X=1)+P(X=2)=\frac38+\frac14=\frac58,\qquad
+P(X\neq 2)=1-\frac14=\frac34.
+}
+\solutionfinal{Bu örnek uzayda rassal değişken yalnızca dört değer alabildiği için dağılım önce sayma ile, sonra soldan birikimli toplama ile okunur.}
+\end{frame}
+
+\begin{frame}[t]{Soru 10: \(f(x)=c(x+1)\)}
+\footnotesize
+Ayrık bir rassal değişken \(X\) için olasılık kütle fonksiyonu aşağıdaki gibi veriliyor:
+\[
+f(x)=c(x+1),\qquad x=0,1,2,3,
+\]
+ve diğer durumda \(0\).
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(c\) sabitini bulunuz.
+  \item[B.] \(P(X\le 2)\) ve \(P(1<X\le 3)\) bulunuz.
+  \item[C.] \(F(x)\) fonksiyonunu yazınız.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 10: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=c(x+1),\qquad x=0,1,2,3.
+\]
+
+\textbf{İlk hangi adım?}
+\[
+\sum_{x=0}^{3} f(x)=1.
+\]
+
+\textbf{Kendinize sorun}
+\[
+\begin{array}{c|cccc}
+x & 0 & 1 & 2 & 3\\ \hline
+f(x) & ? & ? & ? & ? \\
+F(x) & ? & ? & ? & ?
+\end{array}
+\]
+\begin{itemize}
+  \item Önce \(c\) bulunmadan hangi olasılıklar hesaplanamaz?
+  \item CDF tablosu için hangi sırayla biriktirme yapacaksınız?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=6]{Soru 10: Çözüm}
+\scriptsize
+\solutionsetup{parametreli PMF ve CDF}{normlama, tekil olasılıkları toplama, birikimli toplama}{bilinmeyen sabit bulunmadan ne olasılık ne CDF yazılabilir.}
+\solutionmistake{Önce normlama sabitini bulmadan CDF parçalarını yazmaya başlamayın.}
+\solutionstep{1}{İlk olarak normlama koşulunu kullanıp sabiti belirliyoruz; çünkü dağılım önce geçerli olmalıdır.}
+\solutionmath{
+c[(0+1)+(1+1)+(2+1)+(3+1)]=10c=1
+\Longrightarrow c=\frac{1}{10}.
+}
+
+\solutionstep{2}{İstenen olasılıkları ilgili kütleleri toplayarak hesaplıyoruz.}
+\solutionmath{
+P(X\le 2)=\frac{1+2+3}{10}=\frac35,\qquad
+P(1<X\le 3)=\frac{3+4}{10}=\frac{7}{10}.
+}
+
+\solutionstep{3}{Son olarak PMF'den soldan toplama yaparak CDF'yi açıkça yazıyoruz.}
+\solutionmath{
+F(x)=
+\begin{cases}
+0, & x<0,\\
+\frac{1}{10}, & 0\le x<1,\\
+\frac{3}{10}, & 1\le x<2,\\
+\frac{6}{10}, & 2\le x<3,\\
+1, & x\ge 3.
+\end{cases}
+}
+\solutionfinal{Bu dağılımda kütle \(x\) büyüdükçe arttığı için CDF de küçük değerlerde yavaş, büyük değerlere yaklaştıkça daha hızlı yükselir.}
+\end{frame}
+
+\begin{frame}[t]{Soru 11: CDF'den PMF'ye Geçiş}
+\footnotesize
+\[
+F(x)=
+\begin{cases}
+0, & x<0,\\
+0.2, & 0\le x<1,\\
+0.5, & 1\le x<3,\\
+0.9, & 3\le x<5,\\
+1, & x\ge 5.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(X\)'in değerlerini ve olasılıklarını bulunuz.
+  \item[B.] \(P(X=3)\), \(P(X>1)\), \(P(0\le X<5)\) bulunuz.
+  \item[C.] \(X\) ayrık mı, sürekli mi?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 11: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+F(x)=
+\begin{cases}
+0, & x<0,\\
+0.2, & 0\le x<1,\\
+0.5, & 1\le x<3,\\
+0.9, & 3\le x<5,\\
+1, & x\ge 5.
+\end{cases}
+\]
+
+\textbf{Kendinize sorun}
+\[
+\begin{array}{c|cccc}
+x & 0 & 1 & 3 & 5\\ \hline
+\text{CDF sıçraması} & ? & ? & ? & ? \\
+P(X=x) & ? & ? & ? & ?
+\end{array}
+\]
+\begin{itemize}
+  \item Her sıçrama hangi noktanın PMF değeridir?
+  \item \(P(X>1)\) için hangi destek noktaları toplanmalıdır?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=3]{Soru 11: Çözüm}
+\scriptsize
+\solutionsetup{CDF'den PMF'ye geçiş}{sıçrama büyüklüğü, destek okuma, kütle toplama}{veri CDF biçiminde verildiği için önce sıçramaları kütleye çevirmek gerekir.}
+\solutionmistake{PMF'yi CDF yüksekliğinden değil, ardışık CDF seviyeleri arasındaki sıçrama farkından çıkarın.}
+\solutionstep{1}{Ayrık değişkende her sıçrama miktarı ilgili noktadaki PMF değeridir; önce bunu tabloya döküyoruz.}
+\solutionmath{
+P(X=0)=0.2-0=0.2,\quad
+P(X=1)=0.5-0.2=0.3,\quad
+P(X=3)=0.9-0.5=0.4,\quad
+P(X=5)=1-0.9=0.1.
+}
+\solutionmath{
+\begin{array}{c|cccc}
+x & 0 & 1 & 3 & 5\\ \hline
+P(X=x) & 0.2 & 0.3 & 0.4 & 0.1
+\end{array}
+}
+
+\solutionstep{2}{Böylece destek kümesini ve istenen olasılıkları doğrudan yazabiliyoruz.}
+\solutionmath{
+X\in\{0,1,3,5\},\qquad
+P(X=3)=0.4.
+}
+\solutionmath{
+P(X>1)=P(X=3)+P(X=5)=0.4+0.1=0.5,\qquad
+P(0\le X<5)=0.2+0.3+0.4=0.9.
+}
+\solutionfinal{Burada dağılım yalnızca sıçrama noktalarında kütle taşıdığı için \(X\) ayrık bir değişkendir; CDF grafiği de bu nedenle basamaklı görünür.}
+\end{frame}
+
+\subsection{PDF}
+
+\begin{frame}[t]{Soru 12: \(k x^2\) Yoğunluğu}
+\footnotesize
+Sürekli bir rassal değişken \(X\) için yoğunluk fonksiyonu aşağıdaki gibi veriliyor:
+\[
+f(x)=
+\begin{cases}
+kx^2, & 0<x<2,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(k\) bulunuz.
+  \item[B.] \(P(0.5<X<1.5)\) hesaplayınız.
+  \item[C.] \(F(x)\) fonksiyonunu yazınız.
+  \item[D.] \(P(X=1)\) değerini açıklayınız.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 12: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=
+\begin{cases}
+kx^2, & 0<x<2,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{İlk hangi adım?}
+\[
+\int_0^2 kx^2\,dx=1.
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Aralık olasılığı için hangi integral kurulmalı?
+  \item CDF yazarken \(F(x)=\int_{-\infty}^{x} f(t)\,dt\) hangi üç bölgeye ayrılır?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=4]{Soru 12: Çözüm}
+\scriptsize
+\solutionsetup{PDF, integral olasılığı ve CDF}{normlama integrali, alan hesabı, soldan integral}{sürekli dağılımda tüm sorular yoğunluğun integrali üzerinden çözülür.}
+\solutionmistake{Sürekli dağılımda \(f(1)\) bir olasılık değildir; \(P(X=1)=0\) kalır.}
+\solutionstep{1}{Önce normlama integralini kuruyoruz; çünkü \(k\) bilinmeden yoğunluk tamamlanmaz.}
+\solutionmath{
+1=\int_0^2 kx^2\,dx
+=k\left[\frac{x^3}{3}\right]_0^2
+=\frac{8k}{3}
+\Longrightarrow k=\frac{3}{8}.
+}
+
+\solutionstep{2}{İstenen aralık olasılığını integral ile hesaplıyoruz.}
+\solutionmath{
+P(0.5<X<1.5)=\int_{0.5}^{1.5}\frac{3}{8}x^2\,dx
+=\left[\frac{x^3}{8}\right]_{0.5}^{1.5}
+=\frac{13}{32}.
+}
+
+\solutionstep{3}{CDF'yi ve tek nokta olasılığını yazıyoruz.}
+\solutionmath{
+F(x)=
+\begin{cases}
+0, & x\le 0,\\
+\frac{x^3}{8}, & 0<x<2,\\
+1, & x\ge 2.
+\end{cases}
+}
+\solutionfinal{Bu yoğunlukta olasılık alanla ölçüldüğü için tek bir noktanın olasılığı sıfırdır; yani \(X=1\) tam değeri değil, aralıklar anlam taşır.}
+\end{frame}
+
+\begin{frame}[t]{Soru 13: \(c(2-x)\) Yoğunluğu}
+\footnotesize
+Sürekli bir rassal değişken \(X\) için yoğunluk fonksiyonu aşağıdaki gibi veriliyor:
+\[
+f(x)=
+\begin{cases}
+c(2-x), & 0<x<2,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(c\) bulunuz.
+  \item[B.] \(P(X<1)\) ve \(P(X\ge 1.5)\) bulunuz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 13: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=
+\begin{cases}
+c(2-x), & 0<x<2,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Önce \(c\) için hangi normlama integrali yazılmalı?
+  \item İstenen iki olasılık hangi alt aralıkların alanıdır?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t]{Soru 13: Çözüm}
+\footnotesize
+\solutionsetup{parametreli PDF ve alan olasılığı}{normlama integrali, alt aralık alanı}{yoğunluk önce geçerli hale getirilmeli, sonra alanlar hesaplanmalıdır.}
+\solutionmistake{Aralık olasılığını tek bir \(f(x)\) değeriyle değil, ilgili bölgenin alanıyla hesaplayın.}
+\solutionstep{1}{İlk olarak toplam alanı \(1\)'e eşitleyip \(c\) sabitini belirliyoruz.}
+\solutionmath{
+1=\int_0^2 c(2-x)\,dx
+=c\left[2x-\frac{x^2}{2}\right]_0^2
+=2c
+\Longrightarrow c=\frac12.
+}
+
+\solutionstep{2}{İstenen olasılıkları doğrudan integral ile hesaplıyoruz.}
+\solutionmath{
+P(X<1)=\int_0^1 \frac{2-x}{2}\,dx=\frac34,\qquad
+P(X\ge 1.5)=\int_{1.5}^{2}\frac{2-x}{2}\,dx=\frac{1}{16}.
+}
+\solutionfinal{Bu yoğunluk soldan sağa azaldığı için küçük \(x\) değerleri daha olasıdır; bu yüzden \(X<1\) olasılığı sağ kuyruktaki \(X\ge 1.5\) olasılığından çok daha büyüktür.}
+\end{frame}
+
+\begin{frame}[t]{Soru 14: Geçerli PDF mi?}
+\footnotesize
+Bir sürekli rassal değişken \(X\) için önerilen yoğunluk fonksiyonu aşağıdadır:
+\[
+f(x)=
+\begin{cases}
+\dfrac{2(x+2)}{5}, & 0<x<1,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] Geçerli bir yoğunluk olduğunu gösteriniz.
+  \item[B.] \(P(0.25<X<0.75)\) bulunuz.
+  \item[C.] \(F(x)\) fonksiyonunu yazınız.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Soru 14: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=
+\begin{cases}
+\dfrac{2(x+2)}{5}, & 0<x<1,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{Kontrol listesi}
+\begin{itemize}
+  \item Önce negatif olmama koşulunu inceleyin.
+  \item Sonra toplam alanın \(1\) olup olmadığını test edin.
+  \item Ardından aralık olasılığı ve CDF için integral yazın.
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=4]{Soru 14: Çözüm}
+\scriptsize
+\solutionsetup{geçerli PDF testi ve CDF kurma}{işaret kontrolü, normlama integrali, soldan integral}{bir fonksiyonun yoğunluk sayılabilmesi için önce geçerlilik şartları doğrulanmalıdır.}
+\solutionmistake{Toplam alan \(1\) olsa bile negatif kalan bir fonksiyon PDF olamaz; işaret kontrolünü atlamayın.}
+\solutionstep{1}{İlk işimiz PDF koşullarını test etmektir; çünkü ancak geçerli yoğunluk üzerinde olasılık konuşabiliriz.}
+\solutionmath{
+\frac{2(x+2)}{5}>0 \quad (0<x<1),\qquad
+\int_0^1 \frac{2(x+2)}{5}\,dx=1.
+}
+
+\solutionstep{2}{İstenen aralık olasılığını integral ile buluyoruz.}
+\solutionmath{
+P(0.25<X<0.75)=\int_{0.25}^{0.75}\frac{2(x+2)}{5}\,dx=\frac12.
+}
+
+\solutionstep{3}{CDF'yi tanım gereği soldan integralle kuruyoruz.}
+\solutionmath{
+F(x)=
+\begin{cases}
+0, & x\le 0,\\
+\int_0^x \frac{2(t+2)}{5}\,dt=\frac{x^2}{5}+\frac{4x}{5}, & 0<x<1,\\
+1, & x\ge 1.
+\end{cases}
+}
+\solutionfinal{Bu fonksiyon \((0,1)\) aralığında her yerde pozitif ve toplam alanı \(1\) olduğundan, gerçekten de bir olasılık yoğunluğu gibi davranır.}
+\end{frame}
+
+\begin{frame}[t]{Neden Şimdi Beklenen Değer ve Varyans?}
+\small
+\begin{itemize}
+  \item PMF ve PDF bize dağılımın tamamını verdi; şimdi bu dağılımı birkaç özet sayı ile yorumlamayı öğreneceğiz.
+  \item Beklenen değer merkezin nerede toplandığını, varyans ise saçılmanın ne kadar güçlü olduğunu söyler.
+  \item Bu bölümde aynı dağılımdan moment, dönüşüm ve karşılaştırma soruları çıkaracağız.
+\end{itemize}
+
+\begin{infoblock}{Yeni karar sorusu}
+Bir dağılımı yazabiliyorsanız artık ``ortalama ne?'', ``yayılım ne kadar?'' ve ``dönüşüm bu iki niceliği nasıl değiştirir?'' sorularını sorabilirsiniz.
+\end{infoblock}
+\end{frame}
+
+\section{Beklenen Değer ve Varyans}
+\subsection{Ayrık Beklenen Değer}
+
+\begin{frame}[t]{Soru 15: \(-1,0,2\) Dağılımı}
+\footnotesize
+Ayrık bir rassal değişken \(X\) yalnızca \(-1\), \(0\) ve \(2\) değerlerini alıyor.
+\[
+P(X=-1)=0.2,\qquad P(X=0)=0.3,\qquad P(X=2)=0.5.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(E(X)\) bulunuz.
+  \item[B.] \(E(X^2)\) ve \(E((2X+1)^2)\) bulunuz.
+  \item[C.] \(g(X)=3X-4\) için \(E(g(X))\)'i hem doğrudan hem özellik ile doğrulayınız.
+\end{itemize}
+
+\begin{infoblock}{Hatırlatma}
+Ayrık durumda
+\[
+E(X)=\sum_x x\,f(x),\qquad E(g(X))=\sum_x g(x)\,f(x).
+\]
+\end{infoblock}
+\end{frame}
+
+\begin{frame}[t]{Soru 15: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+\begin{array}{c|ccc}
+X & -1 & 0 & 2\\ \hline
+P(X=x) & 0.2 & 0.3 & 0.5
+\end{array}
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Hangi satır \(E(X)\), hangisi \(E(X^2)\) için gerekir?
+  \item \(2X+1\) ve \(3X-4\) dönüşümlerini destek noktalarında tek tek yazdınız mı?
+  \item Son maddede doğrudan hesap ile lineerlik özelliği aynı sonucu veriyor mu?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=8]{Soru 15: Çözüm}
+\scriptsize
+\solutionsetup{ayrık beklenen değer ve dönüşüm}{beklenen değer toplamı, tablo üzerinden dönüşüm}{destek noktaları az olduğu için en güvenli yol tabloyla doğrudan hesaplamadır.}
+\solutionmistake{\(E(g(X))\) genel olarak \(g(E(X))\) değildir; dönüşümü önce destek noktalarında üretin.}
+\solutionstep{1}{Önce beklenen değer ve ikinci momenti aynı tablo üzerinden doğrudan topluyoruz.}
+\[
+\begin{array}{c|ccc}
+X & -1 & 0 & 2\\ \hline
+X^2 & 1 & 0 & 4\\
+(2X+1)^2 & 1 & 1 & 25\\
+3X-4 & -7 & -4 & 2
+\end{array}
+\]
+
+\solutionmath{
+E(X)=(-1)(0.2)+0(0.3)+2(0.5)=0.8,\qquad
+E(X^2)=(-1)^2(0.2)+2^2(0.5)=2.2.
+}
+
+\solutionstep{2}{Dönüşmüş kare için her destek noktasını yerine yazıyoruz.}
+\solutionmath{
+E((2X+1)^2)=1(0.2)+1(0.3)+25(0.5)=13.
+}
+
+\solutionstep{3}{\(g(X)=3X-4\) için doğrudan ve özellik yolunu karşılaştırıyoruz.}
+\solutionmath{
+E(3X-4)=(-7)(0.2)+(-4)(0.3)+2(0.5)=-1.6
+=3E(X)-4.
+}
+\solutionfinal{Bu dağılımda doğrusal dönüşüm hem doğrudan hem özellik yoluyla aynı sonucu verdiği için, lineerlik kuralının pratikte nasıl çalıştığı açıkça görülür.}
+\end{frame}
+
+\begin{frame}[t]{Soru 16: \(x=\{0,1,3,5\}\) Dağılımı}
+\footnotesize
+Ayrık bir rassal değişken \(X\)'in kütle fonksiyonu tabloyla veriliyor:
+\[
+\begin{array}{c|cccc}
+x & 0 & 1 & 3 & 5\\ \hline
+f(x) & 0.1 & 0.4 & 0.3 & 0.2
+\end{array}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(E(X)\) bulunuz.
+  \item[B.] \(\mathrm{Var}(X)\) ve \(\sigma_X\) bulunuz.
+  \item[C.] \(Y=2X-1\) için \(E(Y)\) ve \(\mathrm{Var}(Y)\) bulunuz.
+\end{itemize}
+
+\begin{infoblock}{Hatırlatma}
+Ayrık durumda
+\[
+E(X)=\sum_x x\,f(x),\qquad E(Y)=\sum_x y\,f_Y(y).
+\]
+\[
+\mathrm{Var}(X)=\sum_x x^2 f(x)-[E(X)]^2=E(X^2)-[E(X)]^2.
+\]
+\end{infoblock}
+\end{frame}
+
+\begin{frame}[t]{Soru 16: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+\begin{array}{c|cccc}
+x & 0 & 1 & 3 & 5\\ \hline
+f(x) & 0.1 & 0.4 & 0.3 & 0.2
+\end{array}
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Önce \(E(X)\) ve \(E(X^2)\) için hangi iki toplam yazılmalı?
+  \item Varyans için doğrudan hangi fark kullanılacak?
+  \item \(Y=2X-1\) için ortalama ve varyans nasıl ölçeklenir?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=3]{Soru 16: Çözüm}
+\scriptsize
+\solutionsetup{ayrık beklenen değer, varyans ve dönüşüm}{moment toplamları ve dönüşüm kuralları}{varyans için önce birinci ve ikinci moment gerekir.}
+\solutionmistake{\(\mathrm{Var}(2X-1)\), \(2\mathrm{Var}(X)-1\) değildir; sabit terim varyansı değiştirmez, katsayı kareyle gelir.}
+\solutionstep{1}{İlk adımda birinci ve ikinci momentleri hesaplıyoruz; çünkü varyans doğrudan bunlardan çıkacak.}
+\solutionmath{
+E(X)=0(0.1)+1(0.4)+3(0.3)+5(0.2)=2.3,\qquad
+E(X^2)=1^2(0.4)+3^2(0.3)+5^2(0.2)=8.1.
+}
+
+\solutionstep{2}{Buradan varyans ve standart sapma gelir.}
+\solutionmath{
+\mathrm{Var}(X)=8.1-(2.3)^2=2.81,\qquad
+\sigma_X=\sqrt{2.81}\approx 1.676.
+}
+
+\solutionstep{3}{\(Y=2X-1\) için dönüşüm özelliklerini uyguluyoruz.}
+\solutionmath{
+E(Y)=2E(X)-1=3.6,\qquad
+\mathrm{Var}(Y)=4\,\mathrm{Var}(X)=11.24.
+}
+\solutionfinal{Bu tabloda dönüşüm sonrası ortalama doğrusal değişirken varyansın daha hızlı büyümesi, ölçeklemenin yayılımı nasıl etkilediğini gösterir.}
+\end{frame}
+
+\subsection{Sürekli Beklenen Değer}
+
+\begin{frame}[t]{Soru 17: \(f(x)=x/2\)}
+\footnotesize
+Sürekli bir rassal değişken \(X\) için yoğunluk fonksiyonu aşağıdaki gibidir:
+\[
+f(x)=
+\begin{cases}
+\dfrac{x}{2}, & 0<x<2,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(E(X)\), \(E(X^2)\) bulunuz.
+  \item[B.] \(\mathrm{Var}(X)\) ve \(\sigma_X\) hesaplayınız.
+  \item[C.] \(g(X)=4X+3\) için \(E(g(X))\) bulunuz.
+\end{itemize}
+
+\begin{infoblock}{Hatırlatma}
+Sürekli durumda
+\[
+E(X)=\int_{-\infty}^{\infty} x\,f(x)\,dx,\qquad
+E(g(X))=\int_{-\infty}^{\infty} g(x)\,f(x)\,dx.
+\]
+\[
+\mathrm{Var}(X)=\int_{-\infty}^{\infty} x^2 f(x)\,dx-[E(X)]^2=E(X^2)-[E(X)]^2.
+\]
+\end{infoblock}
+\end{frame}
+
+\begin{frame}[t]{Soru 17: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=
+\begin{cases}
+\dfrac{x}{2}, & 0<x<2,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item \(E(X)\) ve \(E(X^2)\) için hangi iki integral kurulmalı?
+  \item Varyans farkı hangi iki sayının üzerinden bulunacak?
+  \item \(g(X)=4X+3\) için lineerlik nasıl kullanılacak?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=2]{Soru 17: Çözüm}
+\scriptsize
+\solutionsetup{sürekli beklenen değer ve varyans}{moment integralleri ve lineerlik}{sürekli değişkende tüm ana nicelikler yoğunluğun integralleriyle elde edilir.}
+\solutionmistake{\(E(X^2)\) ile \([E(X)]^2\) aynı nicelik değildir; varyans bu ikisinin farkından çıkar.}
+\solutionstep{1}{Önce birinci ve ikinci momenti integralden hesaplıyoruz; çünkü varyans bunların farkına dayanır.}
+\solutionmath{
+E(X)=\frac12\int_0^2 x^2\,dx=\frac43,\qquad
+E(X^2)=\frac12\int_0^2 x^3\,dx=2.
+}
+
+\solutionstep{2}{Varyans ve standart sapma doğrudan buradan gelir.}
+\solutionmath{
+\mathrm{Var}(X)=2-\left(\frac43\right)^2=\frac29,\qquad
+\sigma_X=\frac{\sqrt2}{3}.
+}
+
+\solutionstep{3}{Lineerlik ile dönüşmüş beklenen değeri buluyoruz.}
+\solutionmath{
+E(4X+3)=4E(X)+3=\frac{25}{3}.
+}
+\solutionfinal{Bu yoğunlukta ortalama destek aralığının sağ tarafına kaymıştır; yani daha büyük \(x\) değerleri küçük değerlere göre biraz daha baskındır.}
+\end{frame}
+
+\begin{frame}[t]{Soru 18: Elektronik Bileşen Ömrü}
+\footnotesize
+Bir elektronik bileşenin ömrü \(X\) saat cinsinden ölçülüyor ve yoğunluk fonksiyonu aşağıdaki gibi veriliyor:
+\[
+f(x)=
+\begin{cases}
+\dfrac{20000}{x^3}, & x>100,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] Geçerli PDF olduğunu gösteriniz.
+  \item[B.] Beklenen ömrü bulunuz.
+  \item[C.] \(P(X>200)\) olasılığını bulunuz.
+  \item[D.] \(E(1/X)\) değerini bulunuz.
+\end{itemize}
+
+\begin{infoblock}{Hatırlatma}
+Sürekli durumda
+\[
+E(X)=\int_{-\infty}^{\infty} x\,f(x)\,dx,\qquad
+E\!\left(g(X)\right)=\int_{-\infty}^{\infty} g(x)\,f(x)\,dx.
+\]
+\end{infoblock}
+\end{frame}
+
+\begin{frame}[t]{Soru 18: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=
+\begin{cases}
+\dfrac{20000}{x^3}, & x>100,\\
+0, & \text{diğer}.
+\end{cases}
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Önce toplam alanın \(1\) olduğunu hangi uygunsuz integral ile göstereceksiniz?
+  \item Beklenen ömür için integrand neden \(x\cdot f(x)\) olur?
+  \item \(E(1/X)\) hesabında hangi yeni integrand ortaya çıkar?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=6]{Soru 18: Çözüm}
+\scriptsize
+\solutionsetup{uygunsuz integral ile PDF ve beklenen değer}{normlama, kuyruk olasılığı, dönüşmüş beklenen değer}{destek sonsuza gittiği için tüm hesaplar uygunsuz integral mantığıyla yapılır.}
+\solutionmistake{Sonsuz üst sınırda uygunsuz integral mantığını unutmayın; hesap limit yorumuyla tamamlanır.}
+\solutionstep{1}{Önce toplam alanı kontrol ediyoruz; çünkü sonsuz destekli bir yoğunlukta geçerlilik ayrıca doğrulanmalıdır.}
+\solutionmath{
+\int_{100}^{\infty}\frac{20000}{x^3}\,dx
+=20000\left[-\frac{1}{2x^2}\right]_{100}^{\infty}
+=1.
+}
+
+\solutionstep{2}{Beklenen ömrü ve kuyruk olasılığını hesaplıyoruz.}
+\solutionmath{
+E(X)=\int_{100}^{\infty}x\frac{20000}{x^3}\,dx
+=20000\int_{100}^{\infty}x^{-2}\,dx
+=200.
+}
+\solutionmath{
+P(X>200)=\int_{200}^{\infty}\frac{20000}{x^3}\,dx=\frac14.
+}
+
+\solutionstep{3}{Dönüşmüş beklenen değeri aynı yöntemle buluyoruz.}
+\solutionmath{
+E\!\left(\frac1X\right)=\int_{100}^{\infty}\frac1x\frac{20000}{x^3}\,dx
+=20000\int_{100}^{\infty}x^{-4}\,dx
+=\frac{1}{150}.
+}
+\solutionfinal{Bu modelde bileşenin ortalama ömrü \(200\) saattir; yani ağır kuyruklu görünmesine rağmen sistemin tipik çalışma süresi hâlâ sonlu ve yorumlanabilirdir.}
+\end{frame}
+
+\begin{frame}[t]{Soru 19: \(a+bx\) Yoğunluğu}
+\footnotesize
+Sürekli bir rassal değişken \(X\) için yoğunluk fonksiyonu lineer biçimde veriliyor:
+\[
+f(x)=
+\begin{cases}
+a+bx, & 0<x<2,\\
+0, & \text{diğer}
+\end{cases}
+\qquad\text{ve}\qquad
+E(X)=\frac76.
+\]
+
+\textbf{İstenen}
+\begin{itemize}
+  \item[A.] \(a\) ve \(b\) bulunuz.
+  \item[B.] Negatif olmama koşulunu doğrulayınız.
+  \item[C.] \(P(X>1)\) bulunuz.
+  \item[D.] \(\mathrm{Var}(X)\) hesaplayınız.
+\end{itemize}
+
+\begin{infoblock}{Hatırlatma}
+Sürekli durumda
+\[
+E(X)=\int_{-\infty}^{\infty} x\,f(x)\,dx,\qquad
+E(X^2)=\int_{-\infty}^{\infty} x^2 f(x)\,dx.
+\]
+\[
+\mathrm{Var}(X)=E(X^2)-[E(X)]^2.
+\]
+\end{infoblock}
+\end{frame}
+
+\begin{frame}[t]{Soru 19: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+f(x)=a+bx,\qquad 0<x<2,\qquad E(X)=\frac76.
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Normlama integrali hangi ilk denklemi verir?
+  \item Verilen ortalama bilgisi hangi ikinci denklemi üretir?
+  \item \(a\) ve \(b\) bulunduktan sonra \(P(X>1)\) ve varyans nasıl tamamlanır?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=2]{Soru 19: Çözüm}
+\scriptsize
+\solutionsetup{parametreli sürekli yoğunluk ve moment koşulu}{normlama integrali, ortalama denklemi, ikinci moment}{iki bilinmeyen parametreyi çözmek için iki bağımsız koşul gerekir.}
+\solutionmistake{Normlama denklemi ile ortalama denklemini karıştırmayın; biri toplam alanı, diğeri merkez bilgisini verir.}
+\solutionstep{1}{Normlama ve verilen ortalama bilgisi bize \(a\) ve \(b\) için iki denklem verir.}
+\solutionmath{
+a+b=\frac12,\qquad
+2a+\frac{8b}{3}=\frac76.
+}
+
+\solutionstep{2}{Doğrusal sistemi çözüyoruz.}
+\solutionmath{
+a=\frac14,\qquad b=\frac14,\qquad f(x)=\frac{1+x}{4}.
+}
+
+\solutionstep{3}{Olasılık ve varyansı tamamlıyoruz.}
+\solutionmath{
+P(X>1)=\int_1^2 \frac{1+x}{4}\,dx=\frac58,\qquad
+E(X^2)=\frac53,\qquad
+\mathrm{Var}(X)=\frac{11}{36}.
+}
+\solutionfinal{Bu modelde yoğunluk sağa doğru arttığı için \(X\)'in büyük değerlere kayma eğilimi vardır; bu da \(P(X>1)\) olasılığını yarının üstüne taşır.}
+\end{frame}
+
+\begin{frame}[t]{Ek Zor Soru: Firma Karşılaştırması}
+\footnotesize
+Firma A:
+\[
+\begin{array}{c|ccc}
+x & 1 & 2 & 3\\ \hline
+f_A(x) & 0.3 & 0.4 & 0.3
+\end{array}
+\]
+
+Firma B:
+\[
+\begin{array}{c|ccccc}
+x & 0 & 1 & 2 & 3 & 4\\ \hline
+f_B(x) & 0.2 & 0.1 & 0.3 & 0.3 & 0.1
+\end{array}
+\]
+
+\textbf{İstenen}: ortalamaları, varyansları ve daha kararsız firmayı bulunuz.
+\end{frame}
+
+\begin{frame}[t]{Ek Zor Soru: Çözüm İçin Durak}
+\small
+\solutionghost{
+\textbf{Kurulum}
+\[
+\text{İki firma için de önce }E(X)\text{ ve }E(X^2)\text{ ayrı ayrı hesaplanacak.}
+\]
+
+\textbf{Kendinize sorun}
+\begin{itemize}
+  \item Ortalamalar eşit çıkarsa karar vermek için hangi ölçüye bakacaksınız?
+  \item “Daha kararsız firma” ifadesi varyans açısından ne demektir?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[t,shrink=3]{Ek Zor Soru: Çözüm}
+\footnotesize
+\solutionsetup{iki dağılımı karşılaştırma}{beklenen değer, ikinci moment, varyans}{aynı ortalama her zaman aynı risk veya yayılım anlamına gelmez.}
+\solutionmistake{İki dağılımı yalnızca ortalamayla karşılaştırmayın; kararlılık için varyans da gerekir.}
+\solutionstep{1}{Önce iki firmanın ortalamalarını hesaplıyoruz; çünkü merkez aynı mı farklı mı önce bunu görmek gerekir.}
+\solutionmath{
+E_A(X)=1(0.3)+2(0.4)+3(0.3)=2,\qquad
+E_B(X)=0(0.2)+1(0.1)+2(0.3)+3(0.3)+4(0.1)=2.
+}
+
+\solutionstep{2}{İkinci momentlerden varyansları çıkarıyoruz.}
+\solutionmath{
+E_A(X^2)=1(0.3)+4(0.4)+9(0.3)=4.6,\qquad
+\mathrm{Var}_A(X)=4.6-2^2=0.6.
+}
+\solutionmath{
+E_B(X^2)=0+1(0.1)+4(0.3)+9(0.3)+16(0.1)=5.6,\qquad
+\mathrm{Var}_B(X)=5.6-2^2=1.6.
+}
+\solutionfinal{İki firmanın ortalama performansı aynı olsa da Firma B’nin sonuçları daha geniş saçıldığı için operasyonel açıdan daha kararsız olan firma B’dir.}
+\end{frame}
+
+\section{Kapanış}
+\subsection{Özet}
+
+\begin{frame}[t]{Bu Zor Setten Ne Çıkmalı?}
+\small
+\begin{itemize}
+  \item İlk karar: soru olay mı soruyor, dağılım mı soruyor? Olaydaysa küme diliyle, dağılımdaysa PMF/PDF/CDF diliyle başlayın.
+  \item Koşullu olasılıkta önce ``hangi bilgi örnek uzayı daralttı?'' sorusunu sorun; Bayes'te ise gözlenen olayı normalize edip yönü ters çevirin.
+  \item CDF ayrık ise sıçrama büyüklüğü tek nokta olasılığı verir; sürekli ise tek nokta değil aralık alanı anlam taşır.
+  \item Beklenen değer merkez bilgisini, varyans ise yayılımı verir; bu yüzden karşılaştırma sorularında yalnız ortalamaya güvenmeyin.
+\end{itemize}
+
+\begin{resultblock}{Son mesaj}
+Bu setin ana kazanımı tek tek formül ezberlemek değil, doğru soruya doğru aracı seçebilmektir.
+\end{resultblock}
+\end{frame}
+
+\begin{frame}[t]{Çıkış Bileti: Hangi Soruda Hangi Yöntem?}
+\small
+\begin{itemize}
+  \item Bir makineden mi geldi, bir hastalık var mı, bir test pozitif mi? Böyle bir ters yön sorusunda neden önce toplam olasılık, sonra Bayes gerekir?
+  \item Size \(F(x)\) verilirse hangi durumda ``sıçrama farkı'' ile \(P(X=x)\) bulursunuz, hangi durumda tek nokta olasılığının sıfır olduğunu söylersiniz?
+  \item İki dağılımın ortalaması eşitse ``aynı davranıyorlar'' demek neden hatalıdır; hangi ikinci nicelik kararı değiştirir?
+  \item Bir çözümün ilk satırında artık şu ayrımı net yapabiliyor musunuz: PMF mi, PDF mi, CDF mi, yoksa moment hesabı mı?
+\end{itemize}
+\end{frame}
+
+\section{Kaynaklar}
+\begin{frame}[allowframebreaks]{Kaynaklar}
+  \nocite{walpole}
+  \nocite{walpole_ch2}
+  \nocite{walpole_ch3}
+  \nocite{walpole_ch4}
+  \printbibliography{}
+\end{frame}
+
+\appendix
+
+\section{Yapay Zeka Asistanı}
+\begin{frame}{Yapay Zeka Asistanınız: NotebookLM}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \justifying
+      Bu deck'teki zor soruları küçük parçalara ayırıp tekrar etmek için
+      NotebookLM kullanılabilir.
+
+      \vspace{0.8em}
+      \begin{itemize}
+        \item soru bazlı tekrar,
+        \item kendi çözümünüzle karşılaştırma,
+        \item kısa özet üretme,
+        \item bölüm bazlı çalışma listesi çıkarma.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+      \includegraphics[width=0.82\linewidth]{figures/notebooklm.jpg}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[plain,noframenumbering]
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=center, at=(current page.center), inner sep=0pt] {
+      \includegraphics[width=\paperwidth, height=\paperheight]{logos/background_figure.jpg}
+    };
+  \end{tikzpicture}
+\end{frame}
+
+\end{document}

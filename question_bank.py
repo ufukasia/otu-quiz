@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
 import math
@@ -165,6 +165,18 @@ def rng_from_student(student_id: str, quiz_session: str) -> random.Random:
 def _weights_to_probabilities(weights: tuple[int, ...]) -> list[float]:
     total = sum(weights)
     return [weight / total for weight in weights]
+
+
+def _standard_normal_cdf(z: float) -> float:
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
+def _normal_cdf(x: float, mean: float, std_dev: float) -> float:
+    return _standard_normal_cdf((x - mean) / std_dev)
+
+
+def _erlang_survival(shape: int, rate: float, threshold: float) -> float:
+    return math.exp(-rate * threshold) * sum(((rate * threshold) ** idx) / math.factorial(idx) for idx in range(shape))
 
 
 def _factory_machine_scenario(r: random.Random) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
@@ -363,13 +375,13 @@ def _build_q_tv_sets_p_ge_1(r: random.Random, is_en: bool, tolerance: float) -> 
         "title": "Television Sets - PMF/CDF" if is_en else "Televizyon Setleri - PMF/CDF",
         "text": (
             (
-                f"In a shipment of {total} TVs, {defective} are defective. A hotel randomly buys {draw} TVs.\n"
-                "Let X be number of defective TVs selected. Find P(X>=1)."
+                f"A hotel purchasing department randomly acquires {draw} televisions from a warehouse shipment of {total} TVs, where {defective} units are unfortunately defective.\n"
+                "Let X be the number of defective TVs received by the hotel. Find the probability that the hotel receives at least one defective unit: P(X>=1)."
             )
             if is_en
             else (
-                f"{total} televizyonluk sevkiyatta {defective} tanesi arızalıdır. Bir otel rastgele {draw} televizyon alıyor.\n"
-                "X seçilen arızalı TV sayısı olsun. P(X>=1) değerini bulunuz."
+                f"Bir otel işletmesi, misafir odalarına yerleştirmek üzere deposunda {defective} tane arızalı panel bulunan {total} adetlik bir stoktan rastgele {draw} adet televizyon almıştır.\n"
+                "X, otelin teslim aldığı arızalı televizyon sayısı olduğuna göre, otele ulaşan televizyonlar içinde en az bir tane arızalı TV çıkma olasılığını hesaplayınız: P(X>=1)."
             )
         ),
         "answer": answer,
@@ -398,13 +410,13 @@ def _build_q_software_bug_variance(r: random.Random, is_en: bool, tolerance: flo
         "title": "Software Error Analysis - Variance" if is_en else "Yazılım Hata Analizi - Varyans",
         "text": (
             (
-                f"Error count X in {code_lines} lines of code has the PMF shown in the table.\n"
-                "Using Var(X)=E(X^2)-[E(X)]^2, find Var(X)."
+                f"The PMF table below presents the distribution of software bugs (X) detected by the testing team in a {code_lines}-line code module.\n"
+                "Using the formula Var(X)=E(X^2)-[E(X)]^2, calculate the variance Var(X)."
             )
             if is_en
             else (
-                f"{code_lines} satırlık kod bloğundaki hata sayısı X'in PMF tablosu aşağıdadır.\n"
-                "Var(X)=E(X^2)-[E(X)]^2 formülüyle Var(X) değerini bulunuz."
+                f"{code_lines} satırlık bir yazılım modülünde test ekibi tarafından tespit edilen yazılım hatası (bug) sayısı X'in PMF tablosu aşağıda verilmiştir.\n"
+                "Var(X)=E(X^2)-[E(X)]^2 formülünü kullanarak hataların varyansını hesaplayınız."
             )
         ),
         "answer": answer,
@@ -494,13 +506,13 @@ def _build_q_airbag_pmf_exact_two(r: random.Random, is_en: bool, tolerance: floa
         "title": "Airbag Sales - PMF" if is_en else "Hava Yastığı Satışı - PMF",
         "text": (
             (
-                f"In {n} independent sales, each sale has airbag probability 0.50.\n"
-                "Let X be number of airbag-equipped sales. Find P(X=2)."
+                f"Out of {n} independent car buyers at a dealership, each has a 0.50 probability of opting for the 'extra safety package' (airbags).\n"
+                "Let X be the number of cars sold with this package today. Calculate the probability that exactly 2 customers purchase the upgrade: P(X=2)."
             )
             if is_en
             else (
-                f"{n} bağımsız satışta her satışın hava yastıklı olma olasılığı 0.50 olsun.\n"
-                "X hava yastıklı satış sayısı olsun. P(X=2) değerini bulunuz."
+                f"Bir otomobil galerisine gelen {n} bağımsız müşterinin her birinin satın aldığı araca ek güvenlik paketi (hava yastıkları) ekletme olasılığı 0.50'dir.\n"
+                "X, gün sonundaki hava yastıklı araç satış adedi olduğuna göre, müşterilerden tam olarak 2 tanesinin bu paketi tercih etme olasılığını bulunuz: P(X=2)."
             )
         ),
         "answer": answer,
@@ -526,15 +538,15 @@ def _build_q_vacuum_pdf_prob(r: random.Random, is_en: bool, tolerance: float) ->
         "title": "Vacuum Usage - Piecewise PDF" if is_en else "Elektrik Süpürgesi - Parçalı PDF",
         "text": (
             (
-                "Density is piecewise:\n"
-                "f(x)=x for 0<x<1, f(x)=2-x for 1<=x<2, 0 otherwise.\n"
-                f"Find P(X<{threshold:.2f})."
+                "The duration (X, in hours) a family spends using their vacuum cleaner during weekend chores has the following density function (PDF):\n"
+                "f(x)=x for 0<x<1, f(x)=2-x for 1<=x<2, and 0 otherwise.\n"
+                f"Calculate the probability that the family uses the vacuum for less than {threshold:.2f} hours: P(X<{threshold:.2f})."
             )
             if is_en
             else (
-                "Yoğunluk parçalı:\n"
-                "0<x<1 için f(x)=x, 1<=x<2 için f(x)=2-x, diğer yerde 0.\n"
-                f"P(X<{threshold:.2f}) değerini bulunuz."
+                "Ev temizliği yapan bir ailenin elektrik süpürgesi kullanım süresi (X saat), aşağıdaki parçalı yoğunluk fonksiyonuna (PDF) sahiptir:\n"
+                "0<x<1 için f(x)=x, 1<=x<2 için f(x)=2-x, diğer durumlarda 0.\n"
+                f"Ailenin süpürgeyi {threshold:.2f} saatten daha az kullanmış olma olasılığını hesaplayınız: P(X<{threshold:.2f})."
             )
         ),
         "answer": answer,
@@ -591,13 +603,13 @@ def _build_q_fabric_expected_value(r: random.Random, is_en: bool, tolerance: flo
         "title": "Fabric Defect Count - Expected Value" if is_en else "Kumaş Kusur Sayısı - Beklenen Değer",
         "text": (
             (
-                f"For defect count X in {fabric_length}m synthetic fabric, the PMF is shown in the table.\n"
-                "Find expected value E(X)."
+                f"The table below shows the PMF for the number of defects (X) found in a {fabric_length}m roll of synthetic fabric produced in a textile mill.\n"
+                "Calculate the expected value E(X) for the defect count based on this given distribution."
             )
             if is_en
             else (
-                f"{fabric_length}m sentetik kumaştaki kusur sayısı X'in PMF tablosu aşağıdadır.\n"
-                "Beklenen değeri E(X) hesaplayınız."
+                f"Bir tekstil fabrikasında üretilen {fabric_length} metre uzunluğundaki sentetik kumaş topunda rastlanan defolu iplik veya ilmek gibi kusur sayısı X'in PMF tablosu aşağıda verilmiştir.\n"
+                "Bu olasılık dağılımını kullanarak bir top kumaşta çıkması beklenen ortalama kusur sayısını, yani beklenen değeri E(X) hesaplayınız."
             )
         ),
         "answer": answer,
@@ -608,6 +620,519 @@ def _build_q_fabric_expected_value(r: random.Random, is_en: bool, tolerance: flo
             "p_values": p_values,
             "caption": "PMF: Kumaş kusur sayısı" if not is_en else "PMF: Fabric defect count",
         },
+    }
+
+
+def _build_q_discrete_uniform_helpdesk(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    room_count, threshold = r.choice(
+        [
+            (5, 4),
+            (6, 5),
+            (7, 5),
+            (8, 6),
+        ]
+    )
+    x_values = list(range(1, room_count + 1))
+    p_values = [1 / room_count for _ in x_values]
+    answer = sum(prob for x, prob in zip(x_values, p_values) if x >= threshold)
+    return {
+        "title": "Help Desk Direction - Discrete Uniform" if is_en else "Danışma Yönlendirmesi - Ayrık Uniform",
+        "text": (
+            (
+                f"A student visiting the university counseling center is randomly directed (with equal probability) to one of the {room_count} available meeting rooms.\n"
+                f"If X is the assigned room number, find the probability that the student is directed to room number {threshold} or higher: P(X>={threshold})."
+            )
+            if is_en
+            else (
+                f"Üniversitenin öğrenci destek merkezine gelen bir öğrenci, boş olan {room_count} farklı görüşme odasından birine rastgele (eş olasılıkla) yönlendirilmektedir.\n"
+                f"X değişkeni yönlendirilen odanın numarasını temsil ettiğine göre, öğrencinin {threshold} veya daha büyük numaralı bir odaya yönlendirilme olasılığını bulunuz: P(X>={threshold})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "threshold": threshold,
+        "visual": {
+            "kind": "pmf_bar",
+            "x_values": x_values,
+            "p_values": p_values,
+            "caption": "Ayrık uniform PMF" if not is_en else "Discrete uniform PMF",
+        },
+    }
+
+
+def _build_q_bernoulli_message_reply(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    success_prob = r.choice([0.62, 0.68, 0.74, 0.78, 0.82])
+    answer = success_prob * (1 - success_prob)
+    return {
+        "title": "Same-Day Reply - Bernoulli" if is_en else "Aynı Gün Dönüş - Bernoulli",
+        "text": (
+            (
+                f"The probability of a student receiving a same-day reply to an email sent to their academic advisor is {success_prob:.2f}.\n"
+                "Let X=1 if the reply arrives on the same day, and X=0 otherwise. Calculate the variance of this indicator variable: Var(X)."
+            )
+            if is_en
+            else (
+                f"Bir öğrencinin akademik danışmanına gönderdiği e-postaya aynı gün içinde yanıt alma olasılığı {success_prob:.2f} olarak bilinmektedir.\n"
+                "X rassal değişkeni, mesaja aynı gün dönüş gelmesi durumunda 1, gelmemesi durumunda 0 değerini almaktadır. Bu durum için X'in varyansını hesaplayınız: Var(X)."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "visual": {
+            "kind": "pmf_bar",
+            "x_values": [0, 1],
+            "p_values": [1 - success_prob, success_prob],
+            "caption": "Bernoulli PMF" if not is_en else "Bernoulli PMF",
+        },
+    }
+
+
+def _build_q_binomial_assignment_uploads(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    trial_count, success_prob, target_successes = r.choice(
+        [
+            (6, 0.65, 4),
+            (7, 0.70, 5),
+            (8, 0.60, 5),
+            (9, 0.75, 7),
+        ]
+    )
+    x_values = list(range(0, trial_count + 1))
+    p_values = [
+        math.comb(trial_count, x) * (success_prob**x) * ((1 - success_prob) ** (trial_count - x))
+        for x in x_values
+    ]
+    answer = p_values[target_successes]
+    return {
+        "title": "Assignment Uploads - Binomial" if is_en else "Ödev Yüklemeleri - Binom",
+        "text": (
+            (
+                f"In a group project, {trial_count} students independently manage their work. The probability of each student submitting their assignment before the deadline without delay is {success_prob:.2f}.\n"
+                f"If X represents the number of students who submit on time, calculate the probability that exactly {target_successes} students successfully meet the deadline: P(X={target_successes})."
+            )
+            if is_en
+            else (
+                f"Proje yönetimi dersindeki bir grupta, {trial_count} öğrencinin son teslim tarihinden önce ödevini sisteme yükleme olasılığı birbirinden bağımsız olarak {success_prob:.2f}'dir.\n"
+                f"X değişkeni ödevini zamanında teslim eden öğrenci sayısını gösterdiğine göre, tam olarak {target_successes} öğrencinin ödevini yetiştirme olasılığını hesaplayınız: P(X={target_successes})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "visual": {
+            "kind": "pmf_bar",
+            "x_values": x_values,
+            "p_values": p_values,
+            "highlight_x": target_successes,
+            "trial_count": trial_count,
+            "success_prob": success_prob,
+            "caption": "Binom PMF" if not is_en else "Binomial PMF",
+        },
+    }
+
+
+def _build_q_multinomial_feedback_mix(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    trial_count, probabilities, counts = r.choice(
+        [
+            (5, (0.50, 0.30, 0.20), (2, 2, 1)),
+            (5, (0.40, 0.35, 0.25), (2, 2, 1)),
+            (6, (0.50, 0.30, 0.20), (3, 2, 1)),
+            (6, (0.45, 0.35, 0.20), (2, 3, 1)),
+        ]
+    )
+    coefficient = math.factorial(trial_count)
+    for count in counts:
+        coefficient /= math.factorial(count)
+    answer = coefficient
+    for probability, count in zip(probabilities, counts):
+        answer *= probability**count
+    labels_tr = ["olumlu", "nötr", "olumsuz"]
+    labels_en = ["positive", "neutral", "negative"]
+    labels = labels_en if is_en else labels_tr
+    return {
+        "title": "Daily Feedback Mix - Multinomial" if is_en else "Günlük Geri Bildirim Dağılımı - Multinomial",
+        "text": (
+            (
+                f"A newly launched mobile app receives {trial_count} independent user reviews in a single day. Based on historical data, the probability of a review being positive, neutral, or negative is ({probabilities[0]:.2f}, {probabilities[1]:.2f}, {probabilities[2]:.2f}) respectively.\n"
+                ""
+
+                f"Find the probability that the day's feedback precisely consists of {counts[0]} {labels[0]}, {counts[1]} {labels[1]}, and {counts[2]} {labels[2]} reviews."
+            )
+            if is_en
+            else (
+                f"Yeni piyasaya sürülen bir mobil uygulama için App Store'a bir gün içinde birbirinden bağımsız {trial_count} kullanıcı değerlendirmesi gelmiştir. Her bir yorumun olumlu, nötr veya olumsuz olma olasılıkları sırasıyla ({probabilities[0]:.2f}, {probabilities[1]:.2f}, {probabilities[2]:.2f}) şeklindedir.\n"
+                ""
+
+                f"Gelen bu değerlendirmelerin tam olarak {counts[0]} tanesinin {labels[0]}, {counts[1]} tanesinin {labels[1]} ve {counts[2]} tanesinin {labels[2]} olma olasılığını bulunuz."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "trial_count": trial_count,
+        "category_probs": list(probabilities),
+        "category_counts": list(counts),
+        "category_labels": labels,
+    }
+
+
+def _build_q_hypergeom_cookie_box(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    population_size, success_count, draw_count, target_successes = r.choice(
+        [
+            (10, 3, 4, 1),
+            (12, 4, 5, 2),
+            (14, 5, 4, 1),
+            (15, 5, 6, 2),
+        ]
+    )
+    support_start = max(0, draw_count - (population_size - success_count))
+    support_end = min(success_count, draw_count)
+    x_values = list(range(support_start, support_end + 1))
+    p_values = [
+        (math.comb(success_count, x) * math.comb(population_size - success_count, draw_count - x))
+        / math.comb(population_size, draw_count)
+        for x in x_values
+    ]
+    answer = p_values[x_values.index(target_successes)]
+    return {
+        "title": "Cookie Box Choice - Hypergeometric" if is_en else "Kurabiye Kutusu Seçimi - Hipergeometrik",
+        "text": (
+            (
+                f"A bakery displays a fresh batch of {population_size} mixed cookies, of which exactly {success_count} are hazelnut flavor. A customer randomly picks {draw_count} cookies to be boxed for their friends (drawn without replacement).\n"
+                f"If X is the number of hazelnut cookies in the box, find the probability that there are exactly {target_successes} hazelnut cookies in the selection: P(X={target_successes})."
+            )
+            if is_en
+            else (
+                f"Bir kafenin vitrinindeki taze pişmiş {population_size} adet karışık kurabiyenin içinde tam olarak {success_count} tanesi fındıklıdır. İçeri giren bir müşteri, arkadaşlarına ikram etmek üzere rastgele seçtiği {draw_count} adet kurabiyeyi paketletiyor (geriye koymaksızın çekim).\n"
+                f"X paketlenen fındıklı kurabiye sayısı olduğuna göre, pakette tam olarak {target_successes} adet fındıklı kurabiye bulunma olasılığını hesaplayınız: P(X={target_successes})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "visual": {
+            "kind": "pmf_table",
+            "x_values": x_values,
+            "p_values": p_values,
+            "population_size": population_size,
+            "success_count": success_count,
+            "draw_count": draw_count,
+            "highlight_x": target_successes,
+            "caption": "Hipergeometrik PMF" if not is_en else "Hypergeometric PMF",
+        },
+    }
+
+
+def _build_q_geometric_online_payment(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    success_prob, trial_number = r.choice(
+        [
+            (0.30, 3),
+            (0.35, 4),
+            (0.40, 4),
+            (0.45, 5),
+        ]
+    )
+    answer = ((1 - success_prob) ** (trial_number - 1)) * success_prob
+    return {
+        "title": "Online Payment Attempt - Geometric" if is_en else "Online Ödeme Denemesi - Geometrik",
+        "text": (
+            (
+                f"During a busy holiday sale on an e-commerce platform, a credit card payment attempt has a {success_prob:.2f} probability of succeeding on any single try. Each attempt is independent.\n"
+                f"Calculate the probability that a user checking out achieves their first successful payment on their exactly {trial_number}th attempt: P(X={trial_number})."
+            )
+            if is_en
+            else (
+                f"Popüler bir e-ticaret sitesinde kampanya dönemindeki yoğunluk nedeniyle, kredi kartıyla yapılan bir ödeme işleminin tek bir denemede başarıyla sonuçlanma olasılığı {success_prob:.2f}'dir. Her deneme birbirinden bağımsızdır.\n"
+                f"Sepetini onaylamaya çalışan bir kullanıcının, ilk başarılı ödemeyi tam olarak {trial_number}. denemesinde gerçekleştirme olasılığını bulunuz: P(X={trial_number})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "success_prob": success_prob,
+        "trial_number": trial_number,
+    }
+
+
+def _build_q_negative_binomial_call_reach(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    success_target, trial_number, success_prob = r.choice(
+        [
+            (2, 4, 0.55),
+            (2, 5, 0.60),
+            (3, 5, 0.55),
+            (3, 6, 0.60),
+        ]
+    )
+    answer = math.comb(trial_number - 1, success_target - 1) * (success_prob**success_target) * (
+        (1 - success_prob) ** (trial_number - success_target)
+    )
+    return {
+        "title": "Reaching a Customer - Negative Binomial" if is_en else "Müşteriye Ulaşma - Negatif Binom",
+        "text": (
+            (
+                f"A customer support agent has a {success_prob:.2f} probability of successfully reaching an active subscriber on any independent outbound call.\n"
+                f"Calculate the probability that the agent achieves their {success_target}th successful conversation precisely on the {trial_number}th call attempt of the day: P(X={trial_number})."
+            )
+            if is_en
+            else (
+                f"Bir çağrı merkezindeki müşteri temsilcisinin, aradığı abonelere ulaşabilme (telefonun açılması) olasılığı her bağımsız denemede {success_prob:.2f} olarak ölçülmüştür.\n"
+                f"Günlük kotasını doldurmaya çalışan temsilcinin, {success_target}. başarılı abone görüşmesini günün tam olarak {trial_number}. aramasında gerçekleştirme olasılığını hesaplayınız: P(X={trial_number})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "success_target": success_target,
+        "trial_number": trial_number,
+        "success_prob": success_prob,
+    }
+
+
+def _build_q_poisson_courier_calls(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    rate_per_hour, hours, event_count = r.choice(
+        [
+            (2.0, 0.5, 1),
+            (2.4, 0.5, 1),
+            (3.0, 1.0, 2),
+            (3.6, 0.5, 2),
+        ]
+    )
+    mean = rate_per_hour * hours
+    answer = math.exp(-mean) * (mean**event_count) / math.factorial(event_count)
+    minutes = int(hours * 60)
+    return {
+        "title": "Courier Call Count - Poisson" if is_en else "Kurye Araması Sayısı - Poisson",
+        "text": (
+            (
+                f"The reception desk of a busy corporate building receives notification calls from delivery couriers at an average rate of {rate_per_hour:.1f} per hour.\n"
+                f"Assuming these incoming calls follow a Poisson model, find the probability that the receptionist will receive exactly {event_count} courier calls during a {minutes}-minute timeframe."
+            )
+            if is_en
+            else (
+                f"Kalabalık bir iş merkezinin resepsiyonuna, teslimat için gelen kuryelerden saatte ortalama {rate_per_hour:.1f} kez bildirim telefonu gelmektedir.\n"
+                f"Telefon geliş senaryosunun bir Poisson sürecine uyduğu varsayılırsa, banko görevlisi moladayken ({minutes} dakika) tam olarak {event_count} adet kurye telefonu gelme olasılığını hesaplayınız."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "rate_per_hour": rate_per_hour,
+        "hours": hours,
+        "event_count": event_count,
+    }
+
+
+def _build_q_continuous_uniform_paint_dry(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    interval_start, interval_end, lower_bound, upper_bound = r.choice(
+        [
+            (30, 50, 34, 42),
+            (25, 45, 30, 38),
+            (20, 40, 26, 33),
+            (35, 55, 41, 49),
+        ]
+    )
+    answer = (upper_bound - lower_bound) / (interval_end - interval_start)
+    return {
+        "title": "Paint Drying Time - Continuous Uniform" if is_en else "Boya Kuruma Süresi - Sürekli Uniform",
+        "text": (
+            (
+                f"In a woodworking workshop, the time it takes for a special varnish applied to wooden furniture to completely dry (X minutes) follows a Continuous Uniform distribution on the interval ({interval_start}, {interval_end}).\n"
+                f"Calculate the probability that a freshly varnished coffee table takes between {lower_bound} and {upper_bound} minutes to dry: P({lower_bound}<X<{upper_bound})."
+            )
+            if is_en
+            else (
+                f"Bir marangoz atölyesinde ahşap mobilyalar için kullanılan özel bir cilanın tamamen kuruma ve dokunulabilir hale gelme süresi (X dakika), ({interval_start}, {interval_end}) aralığında Sürekli Uniform (Düzgün) dağılıma uymaktadır.\n"
+                f"Yeni cilalanmış bir sehpanın kurumasının {lower_bound} dakika ile {upper_bound} dakika arasında sürme olasılığını hesaplayınız: P({lower_bound}<X<{upper_bound})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "interval_start": interval_start,
+        "interval_end": interval_end,
+        "lower_bound": lower_bound,
+        "upper_bound": upper_bound,
+    }
+
+
+def _build_q_normal_shaft_acceptance(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    mean, std_dev, lower_bound, upper_bound = r.choice(
+        [
+            (20.00, 0.04, 19.92, 20.06),
+            (18.00, 0.05, 17.95, 18.08),
+            (25.00, 0.10, 24.90, 25.15),
+            (12.00, 0.20, 11.80, 12.10),
+        ]
+    )
+    answer = _normal_cdf(upper_bound, mean, std_dev) - _normal_cdf(lower_bound, mean, std_dev)
+    return {
+        "title": "Shaft Acceptance - Normal" if is_en else "Şaft Kabul Olasılığı - Normal",
+        "text": (
+            (
+                f"Precision steel shafts produced in a factory have diameters (X mm) that are Normally distributed with a mean of {mean:.2f} mm and a standard deviation of {std_dev:.2f} mm.\n"
+                f"Quality control standards require a shaft diameter to be strictly between {lower_bound:.2f} mm and {upper_bound:.2f} mm to fit seamlessly into the engine block. Find the probability that a randomly selected shaft passes the inspection."
+            )
+            if is_en
+            else (
+                f"Bir fabrikada üretilen hassas çelik şaftların çapı (X mm), ortalaması {mean:.2f} mm ve standart sapması {std_dev:.2f} mm olan Normal dağılıma uymaktadır.\n"
+                f"Kalite kontrol standartlarına göre, bir şaftın motora sorunsuz monte edilebilmesi için çapının {lower_bound:.2f} mm ile {upper_bound:.2f} mm arasında olması şarttır. Rastgele seçilmiş bir şaftın kalite testini geçme (kabul edilme) olasılığını hesaplayınız."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "mean": mean,
+        "std_dev": std_dev,
+        "lower_bound": lower_bound,
+        "upper_bound": upper_bound,
+    }
+
+
+def _build_q_binomial_normal_approx_quality(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    trial_count, defect_prob, threshold_count = r.choice(
+        [
+            (200, 0.04, 10),
+            (150, 0.08, 16),
+            (120, 0.40, 55),
+            (180, 0.30, 60),
+        ]
+    )
+    mean = trial_count * defect_prob
+    std_dev = math.sqrt(trial_count * defect_prob * (1 - defect_prob))
+    answer = _standard_normal_cdf((threshold_count + 0.5 - mean) / std_dev)
+    return {
+        "title": "Quality Line - Normal Approximation to Binomial" if is_en else "Kalite Hattı - Binoma Normal Yaklaşım",
+        "text": (
+            (
+                f"A factory produces {trial_count} smartwatch screens daily. Each screen has an independent {defect_prob:.2f} probability of containing a defective dead pixel.\n"
+                f"The quality department tolerates up to {threshold_count} defective units per day. Using the normal approximation with continuity correction, find the probability that {threshold_count} or fewer defective screens are produced in a day."
+            )
+            if is_en
+            else (
+                f"Günde {trial_count} adet akıllı saat ekranı üreten bir fabrikada, her bir ürünün minik bir piksel kusuru içerme olasılığı birbirinden bağımsız olarak {defect_prob:.2f}'dir.\n"
+                f"Günlük kusurlu üretim sayısı (X), Binom dağılımından gelmektedir. Kalite biriminin günlük toleransı maksimum {threshold_count} hatadır. Sürekli düzeltmeli normal yaklaşımı formülünü kullanarak, fabrikada o gün en fazla {threshold_count} adet kusurlu ekran üretilme olasılığını yaklaşık olarak hesaplayınız: P(X<={threshold_count})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "trial_count": trial_count,
+        "defect_prob": defect_prob,
+        "threshold_count": threshold_count,
+    }
+
+
+def _build_q_exponential_server_fault_wait(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    rate_per_hour, threshold_hours = r.choice(
+        [
+            (2.0, 0.75),
+            (1.5, 1.0),
+            (3.0, 0.50),
+            (2.4, 1.25),
+        ]
+    )
+    answer = math.exp(-rate_per_hour * threshold_hours)
+    minutes = int(round(threshold_hours * 60))
+    return {
+        "title": "First Fault Record Wait - Exponential" if is_en else "İlk Arıza Kaydı Bekleme - Üssel",
+        "text": (
+            (
+                f"The cloud server center of a tech firm receives system warning alerts at an average rate of {rate_per_hour:.1f} per hour.\n"
+                f"The waiting time (X hours) until the very first warning alert arrives is modeled by an Exponential distribution. After restarting the servers, calculate the probability that no warnings occur in the first {minutes} minutes, which means the waiting time exceeds {threshold_hours:.2f} hours: P(X>{threshold_hours:.2f})."
+            )
+            if is_en
+            else (
+                f"Büyük bir teknoloji firmasının bulut sunucu merkezine, saatte ortalama {rate_per_hour:.1f} adet sistemsel uyarı (arıza/kesinti logu) düşmektedir.\n"
+                f"Sistemi yeni baştan başlatan bir yöneticinin, ilk uyarı kaydını alana kadar geçen bekleme süresi (X saat) Üstel dağılım ile modellenir. Servisler açıldıktan sonraki ilk {minutes} dakika içinde sunuculardan hiçbir arıza uyarısı gelmeme, yani bekleme süresinin {threshold_hours:.2f} saatten uzun sürme olasılığını hesaplayınız: P(X>{threshold_hours:.2f})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "rate_per_hour": rate_per_hour,
+        "threshold_hours": threshold_hours,
+    }
+
+
+def _build_q_gamma_second_call_wait(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    shape, rate_per_minute, threshold_minutes = r.choice(
+        [
+            (2, 4.0, 0.25),   # lambda*t=1.0, k=2 -> survival ~0.736 (15 s)
+            (2, 3.0, 0.50),   # lambda*t=1.5, k=2 -> survival ~0.558 (30 s)
+            (2, 6.0, 1 / 3),  # lambda*t=2.0, k=2 -> survival ~0.406 (20 s)
+            (2, 2.0, 1.50),   # lambda*t=3.0, k=2 -> survival ~0.199 (90 s)
+            (3, 2.0, 0.75),   # lambda*t=1.5, k=3 -> survival ~0.809 (45 s)
+            (3, 3.0, 1.00),   # lambda*t=3.0, k=3 -> survival ~0.423 (60 s)
+        ]
+    )
+    answer = _erlang_survival(shape, rate_per_minute, threshold_minutes)
+    threshold_seconds = int(round(threshold_minutes * 60))
+    return {
+        "title": "Waiting for the kth Call - Gamma" if is_en else "k. Çağrıya Kadar Bekleme - Gamma",
+        "text": (
+            (
+                f"During a busy lunch hour, an emergency dispatch center handles incoming calls at an average rate of {rate_per_minute:.1f} per minute.\n"
+                f"Assuming arrivals follow a Poisson process, the waiting time (X minutes) to receive the {shape}th emergency case follows a Gamma (Erlang) distribution. Calculate the probability that the dispatcher waits more than {threshold_seconds} seconds to be assigned their {shape}th case: P(X>{threshold_minutes:.2f})."
+            )
+            if is_en
+            else (
+                f"Bir acil çağrı merkezine yoğunluğun çok olduğu saatlerde dakikada ortalama {rate_per_minute:.1f} adet çağrı düşmektedir.\n"
+                f"Vardiyaya yeni başlayan bir operatörün sisteme düşen {shape}. vakayı bekleme süresinin (X dakika) Gamma dağılımına uyduğu bilinmektedir. Bu operatörün {shape}. vakasının, sisteme giriş yaptığı andan itibaren tam {threshold_seconds} saniyeden daha uzun bir sürenin ardından gelme olasılığını bulunuz: P(X>{threshold_minutes:.2f})."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "shape": shape,
+        "rate_per_minute": rate_per_minute,
+        "threshold_minutes": threshold_minutes,
+    }
+
+
+def _build_q_weibull_pump_lifetime(r: random.Random, is_en: bool, tolerance: float) -> Question:
+    alpha_scale, beta_shape, threshold_hours = r.choice(
+        [
+            (0.002, 2.0, 15),
+            (0.005, 2.0, 10),
+            (0.001, 3.0, 8),
+            (0.004, 1.5, 12),
+        ]
+    )
+    answer = 1 - math.exp(-alpha_scale * (threshold_hours**beta_shape))
+    return {
+        "title": "Pump Seal Lifetime - Weibull" if is_en else "Pompa Keçesi Ömrü - Weibull",
+        "text": (
+            (
+                f"The wear and failure lifetime X (in hours) of high-pressure water pump seals used in a hydroelectric dam is modeled by a Weibull distribution. Its Cumulative Distribution Function for failure is F(x)=1-exp(-{alpha_scale:.3f} x^{beta_shape:.1f}) for x>0.\n"
+                f"Find the probability that a newly installed pump seal degrades and fails within the first {threshold_hours} hours of operation."
+            )
+            if is_en
+            else (
+                f"Bir hidroelektrik santralinde kullanılan yüksek basınçlı su pompası sızdırmazlık contalarının arızalanma ömrü X (saat), Weibull dağılımı ile modellenmektedir. Contaların bozulma birikimli dağılım fonksiyonu (CDF), x>0 için F(x)=1-exp(-{alpha_scale:.3f} x^{beta_shape:.1f}) formülüyle ifade edilir.\n"
+                f"Yeni takılan bir sızdırmazlık contasının santral çalışmaya başladıktan sonraki ilk {threshold_hours} saat içinde dayanamayıp arıza verme olasılığını hesaplayınız."
+            )
+        ),
+        "answer": answer,
+        "answer_min": 0.0,
+        "answer_max": 1.0,
+        "tolerance": tolerance,
+        "alpha_scale": alpha_scale,
+        "beta_shape": beta_shape,
+        "threshold_hours": threshold_hours,
     }
 
 
@@ -743,6 +1268,223 @@ def _validate_q_fabric_expected_value(question: Question) -> None:
     _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal expected value E(X)")
 
 
+def _validate_q_discrete_uniform_helpdesk(question: Question) -> None:
+    question_id = "discrete_uniform_helpdesk"
+    answer, x_values, p_values, _ = _validate_pmf_visual(question_id, question)
+    support = _validate_integer_support(question_id, x_values)
+    _ensure(support == list(range(1, len(support) + 1)), question_id, "support must be 1..m")
+    _ensure(all(_approx_equal(value, p_values[0]) for value in p_values), question_id, "all probabilities must be equal")
+    threshold_raw = _as_float(question.get("threshold"), question_id, "threshold")
+    threshold = int(round(threshold_raw))
+    _ensure(_approx_equal(threshold_raw, threshold), question_id, "threshold must be an integer")
+    expected_answer = sum(prob for x, prob in zip(support, p_values) if x >= threshold)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal upper-tail discrete uniform probability")
+
+
+def _validate_q_bernoulli_message_reply(question: Question) -> None:
+    question_id = "bernoulli_message_reply"
+    answer, x_values, p_values, _ = _validate_pmf_visual(question_id, question)
+    support = _validate_integer_support(question_id, x_values)
+    _ensure(support == [0, 1], question_id, "support must be [0, 1]")
+    success_prob = p_values[1]
+    expected_answer = success_prob * (1 - success_prob)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal Bernoulli variance p(1-p)")
+
+
+def _validate_q_binomial_assignment_uploads(question: Question) -> None:
+    question_id = "binomial_assignment_uploads"
+    answer, x_values, p_values, visual = _validate_pmf_visual(question_id, question)
+    support = _validate_integer_support(question_id, x_values)
+    trial_count = int(_as_float(visual.get("trial_count"), question_id, "visual.trial_count"))
+    success_prob = _ensure_probability(visual.get("success_prob"), question_id, "visual.success_prob")
+    highlight_x = int(_as_float(visual.get("highlight_x"), question_id, "visual.highlight_x"))
+    _ensure(support == list(range(0, trial_count + 1)), question_id, "support must be 0..n")
+    expected_probs = [
+        math.comb(trial_count, x) * (success_prob**x) * ((1 - success_prob) ** (trial_count - x))
+        for x in support
+    ]
+    for idx, value in enumerate(p_values):
+        _ensure(_approx_equal(value, expected_probs[idx]), question_id, f"p_values[{idx}] must match binomial PMF")
+    _ensure(highlight_x in support, question_id, "highlight_x must belong to support")
+    _ensure(_approx_equal(answer, p_values[support.index(highlight_x)]), question_id, "answer must equal highlighted PMF value")
+
+
+def _validate_q_multinomial_feedback_mix(question: Question) -> None:
+    question_id = "multinomial_feedback_mix"
+    answer = _validate_question_shell(question_id, question)
+    trial_count_raw = _as_float(question.get("trial_count"), question_id, "trial_count")
+    trial_count = int(round(trial_count_raw))
+    _ensure(_approx_equal(trial_count_raw, trial_count), question_id, "trial_count must be an integer")
+    category_probs = _require_numeric_sequence(question_id, question, "category_probs")
+    category_counts_raw = _require_numeric_sequence(question_id, question, "category_counts")
+    category_counts = [int(round(value)) for value in category_counts_raw]
+    _ensure(len(category_probs) == len(category_counts), question_id, "category arrays must have same length")
+    _ensure(len(category_probs) >= 2, question_id, "multinomial must have at least two categories")
+    for idx, value in enumerate(category_probs):
+        _ensure_probability(value, question_id, f"category_probs[{idx}]")
+    for idx, value in enumerate(category_counts_raw):
+        _ensure(_approx_equal(value, category_counts[idx]), question_id, f"category_counts[{idx}] must be integer")
+        _ensure(category_counts[idx] >= 0, question_id, f"category_counts[{idx}] must be non-negative")
+    _ensure(_approx_equal(sum(category_probs), 1.0), question_id, "category probabilities must sum to 1")
+    _ensure(sum(category_counts) == trial_count, question_id, "category counts must sum to trial_count")
+    expected_answer = math.factorial(trial_count)
+    for count in category_counts:
+        expected_answer /= math.factorial(count)
+    for probability, count in zip(category_probs, category_counts):
+        expected_answer *= probability**count
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal multinomial probability")
+
+
+def _validate_q_hypergeom_cookie_box(question: Question) -> None:
+    question_id = "hypergeom_cookie_box"
+    answer, x_values, p_values, visual = _validate_pmf_visual(question_id, question)
+    support = _validate_integer_support(question_id, x_values)
+    population_size = int(_as_float(visual.get("population_size"), question_id, "visual.population_size"))
+    success_count = int(_as_float(visual.get("success_count"), question_id, "visual.success_count"))
+    draw_count = int(_as_float(visual.get("draw_count"), question_id, "visual.draw_count"))
+    highlight_x = int(_as_float(visual.get("highlight_x"), question_id, "visual.highlight_x"))
+    expected_support = list(range(max(0, draw_count - (population_size - success_count)), min(success_count, draw_count) + 1))
+    _ensure(support == expected_support, question_id, "support must match valid hypergeometric outcomes")
+    expected_probs = [
+        (math.comb(success_count, x) * math.comb(population_size - success_count, draw_count - x))
+        / math.comb(population_size, draw_count)
+        for x in support
+    ]
+    for idx, value in enumerate(p_values):
+        _ensure(_approx_equal(value, expected_probs[idx]), question_id, f"p_values[{idx}] must match hypergeometric PMF")
+    _ensure(highlight_x in support, question_id, "highlight_x must belong to support")
+    _ensure(_approx_equal(answer, p_values[support.index(highlight_x)]), question_id, "answer must equal highlighted PMF value")
+
+
+def _validate_q_geometric_online_payment(question: Question) -> None:
+    question_id = "geometric_online_payment"
+    answer = _validate_question_shell(question_id, question)
+    success_prob = _ensure_probability(question.get("success_prob"), question_id, "success_prob")
+    trial_number_raw = _as_float(question.get("trial_number"), question_id, "trial_number")
+    trial_number = int(round(trial_number_raw))
+    _ensure(_approx_equal(trial_number_raw, trial_number), question_id, "trial_number must be an integer")
+    _ensure(trial_number >= 1, question_id, "trial_number must be at least 1")
+    expected_answer = ((1 - success_prob) ** (trial_number - 1)) * success_prob
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal geometric PMF")
+
+
+def _validate_q_negative_binomial_call_reach(question: Question) -> None:
+    question_id = "negative_binomial_call_reach"
+    answer = _validate_question_shell(question_id, question)
+    success_prob = _ensure_probability(question.get("success_prob"), question_id, "success_prob")
+    success_target_raw = _as_float(question.get("success_target"), question_id, "success_target")
+    trial_number_raw = _as_float(question.get("trial_number"), question_id, "trial_number")
+    success_target = int(round(success_target_raw))
+    trial_number = int(round(trial_number_raw))
+    _ensure(_approx_equal(success_target_raw, success_target), question_id, "success_target must be an integer")
+    _ensure(_approx_equal(trial_number_raw, trial_number), question_id, "trial_number must be an integer")
+    _ensure(success_target >= 1, question_id, "success_target must be at least 1")
+    _ensure(trial_number >= success_target, question_id, "trial_number must be at least success_target")
+    expected_answer = math.comb(trial_number - 1, success_target - 1) * (success_prob**success_target) * (
+        (1 - success_prob) ** (trial_number - success_target)
+    )
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal negative binomial PMF")
+
+
+def _validate_q_poisson_courier_calls(question: Question) -> None:
+    question_id = "poisson_courier_calls"
+    answer = _validate_question_shell(question_id, question)
+    rate_per_hour = _as_float(question.get("rate_per_hour"), question_id, "rate_per_hour")
+    hours = _as_float(question.get("hours"), question_id, "hours")
+    event_count_raw = _as_float(question.get("event_count"), question_id, "event_count")
+    event_count = int(round(event_count_raw))
+    _ensure(rate_per_hour > 0.0, question_id, "rate_per_hour must be positive")
+    _ensure(hours > 0.0, question_id, "hours must be positive")
+    _ensure(_approx_equal(event_count_raw, event_count), question_id, "event_count must be an integer")
+    _ensure(event_count >= 0, question_id, "event_count must be non-negative")
+    mean = rate_per_hour * hours
+    expected_answer = math.exp(-mean) * (mean**event_count) / math.factorial(event_count)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal Poisson PMF")
+
+
+def _validate_q_continuous_uniform_paint_dry(question: Question) -> None:
+    question_id = "continuous_uniform_paint_dry"
+    answer = _validate_question_shell(question_id, question)
+    interval_start = _as_float(question.get("interval_start"), question_id, "interval_start")
+    interval_end = _as_float(question.get("interval_end"), question_id, "interval_end")
+    lower_bound = _as_float(question.get("lower_bound"), question_id, "lower_bound")
+    upper_bound = _as_float(question.get("upper_bound"), question_id, "upper_bound")
+    _ensure(interval_start < interval_end, question_id, "interval_start must be smaller than interval_end")
+    _ensure(interval_start <= lower_bound < upper_bound <= interval_end, question_id, "bounds must stay within support")
+    expected_answer = (upper_bound - lower_bound) / (interval_end - interval_start)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal continuous uniform interval probability")
+
+
+def _validate_q_normal_shaft_acceptance(question: Question) -> None:
+    question_id = "normal_shaft_acceptance"
+    answer = _validate_question_shell(question_id, question)
+    mean = _as_float(question.get("mean"), question_id, "mean")
+    std_dev = _as_float(question.get("std_dev"), question_id, "std_dev")
+    lower_bound = _as_float(question.get("lower_bound"), question_id, "lower_bound")
+    upper_bound = _as_float(question.get("upper_bound"), question_id, "upper_bound")
+    _ensure(std_dev > 0.0, question_id, "std_dev must be positive")
+    _ensure(lower_bound < upper_bound, question_id, "lower_bound must be smaller than upper_bound")
+    expected_answer = _normal_cdf(upper_bound, mean, std_dev) - _normal_cdf(lower_bound, mean, std_dev)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal normal acceptance probability")
+
+
+def _validate_q_binomial_normal_approx_quality(question: Question) -> None:
+    question_id = "binomial_normal_approx_quality"
+    answer = _validate_question_shell(question_id, question)
+    trial_count_raw = _as_float(question.get("trial_count"), question_id, "trial_count")
+    trial_count = int(round(trial_count_raw))
+    defect_prob = _ensure_probability(question.get("defect_prob"), question_id, "defect_prob")
+    threshold_raw = _as_float(question.get("threshold_count"), question_id, "threshold_count")
+    threshold_count = int(round(threshold_raw))
+    _ensure(_approx_equal(trial_count_raw, trial_count), question_id, "trial_count must be an integer")
+    _ensure(_approx_equal(threshold_raw, threshold_count), question_id, "threshold_count must be an integer")
+    _ensure(trial_count > 0, question_id, "trial_count must be positive")
+    _ensure(0 <= threshold_count <= trial_count, question_id, "threshold_count must stay within [0, n]")
+    variance = trial_count * defect_prob * (1 - defect_prob)
+    _ensure(variance > 0.0, question_id, "binomial variance must be positive")
+    expected_answer = _standard_normal_cdf((threshold_count + 0.5 - (trial_count * defect_prob)) / math.sqrt(variance))
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal continuity-corrected normal approximation")
+
+
+def _validate_q_exponential_server_fault_wait(question: Question) -> None:
+    question_id = "exponential_server_fault_wait"
+    answer = _validate_question_shell(question_id, question)
+    rate_per_hour = _as_float(question.get("rate_per_hour"), question_id, "rate_per_hour")
+    threshold_hours = _as_float(question.get("threshold_hours"), question_id, "threshold_hours")
+    _ensure(rate_per_hour > 0.0, question_id, "rate_per_hour must be positive")
+    _ensure(threshold_hours > 0.0, question_id, "threshold_hours must be positive")
+    expected_answer = math.exp(-rate_per_hour * threshold_hours)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal exponential survival probability")
+
+
+def _validate_q_gamma_second_call_wait(question: Question) -> None:
+    question_id = "gamma_second_call_wait"
+    answer = _validate_question_shell(question_id, question)
+    shape_raw = _as_float(question.get("shape"), question_id, "shape")
+    shape = int(round(shape_raw))
+    rate_per_minute = _as_float(question.get("rate_per_minute"), question_id, "rate_per_minute")
+    threshold_minutes = _as_float(question.get("threshold_minutes"), question_id, "threshold_minutes")
+    _ensure(_approx_equal(shape_raw, shape), question_id, "shape must be an integer")
+    _ensure(shape >= 1, question_id, "shape must be at least 1")
+    _ensure(rate_per_minute > 0.0, question_id, "rate_per_minute must be positive")
+    _ensure(threshold_minutes > 0.0, question_id, "threshold_minutes must be positive")
+    expected_answer = _erlang_survival(shape, rate_per_minute, threshold_minutes)
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal gamma survival probability")
+
+
+def _validate_q_weibull_pump_lifetime(question: Question) -> None:
+    question_id = "weibull_pump_lifetime"
+    answer = _validate_question_shell(question_id, question)
+    alpha_scale = _as_float(question.get("alpha_scale"), question_id, "alpha_scale")
+    beta_shape = _as_float(question.get("beta_shape"), question_id, "beta_shape")
+    threshold_hours = _as_float(question.get("threshold_hours"), question_id, "threshold_hours")
+    _ensure(alpha_scale > 0.0, question_id, "alpha_scale must be positive")
+    _ensure(beta_shape > 0.0, question_id, "beta_shape must be positive")
+    _ensure(threshold_hours > 0.0, question_id, "threshold_hours must be positive")
+    expected_answer = 1 - math.exp(-alpha_scale * (threshold_hours**beta_shape))
+    _ensure(_approx_equal(answer, expected_answer), question_id, "answer must equal Weibull CDF probability")
+
+
 QUESTION_DEFINITIONS: tuple[QuestionDefinition, ...] = (
     _question_definition(
         "backup_power_union",
@@ -820,6 +1562,104 @@ QUESTION_DEFINITIONS: tuple[QuestionDefinition, ...] = (
         "Fabric Defect Count (Expected Value)",
         _build_q_fabric_expected_value,
         _validate_q_fabric_expected_value,
+    ),
+    _question_definition(
+        "discrete_uniform_helpdesk",
+        "Danışma Yönlendirmesi (Ayrık Uniform)",
+        "Help Desk Direction (Discrete Uniform)",
+        _build_q_discrete_uniform_helpdesk,
+        _validate_q_discrete_uniform_helpdesk,
+    ),
+    _question_definition(
+        "bernoulli_message_reply",
+        "Aynı Gün Dönüş (Bernoulli)",
+        "Same-Day Reply (Bernoulli)",
+        _build_q_bernoulli_message_reply,
+        _validate_q_bernoulli_message_reply,
+    ),
+    _question_definition(
+        "binomial_assignment_uploads",
+        "Ödev Yüklemeleri (Binom)",
+        "Assignment Uploads (Binomial)",
+        _build_q_binomial_assignment_uploads,
+        _validate_q_binomial_assignment_uploads,
+    ),
+    _question_definition(
+        "multinomial_feedback_mix",
+        "Günlük Geri Bildirim Dağılımı (Multinomial)",
+        "Daily Feedback Mix (Multinomial)",
+        _build_q_multinomial_feedback_mix,
+        _validate_q_multinomial_feedback_mix,
+    ),
+    _question_definition(
+        "hypergeom_cookie_box",
+        "Kurabiye Kutusu Seçimi (Hipergeometrik)",
+        "Cookie Box Choice (Hypergeometric)",
+        _build_q_hypergeom_cookie_box,
+        _validate_q_hypergeom_cookie_box,
+    ),
+    _question_definition(
+        "geometric_online_payment",
+        "Online Ödeme Denemesi (Geometrik)",
+        "Online Payment Attempt (Geometric)",
+        _build_q_geometric_online_payment,
+        _validate_q_geometric_online_payment,
+    ),
+    _question_definition(
+        "negative_binomial_call_reach",
+        "Müşteriye Ulaşma (Negatif Binom)",
+        "Reaching a Customer (Negative Binomial)",
+        _build_q_negative_binomial_call_reach,
+        _validate_q_negative_binomial_call_reach,
+    ),
+    _question_definition(
+        "poisson_courier_calls",
+        "Kurye Araması Sayısı (Poisson)",
+        "Courier Call Count (Poisson)",
+        _build_q_poisson_courier_calls,
+        _validate_q_poisson_courier_calls,
+    ),
+    _question_definition(
+        "continuous_uniform_paint_dry",
+        "Boya Kuruma Süresi (Sürekli Uniform)",
+        "Paint Drying Time (Continuous Uniform)",
+        _build_q_continuous_uniform_paint_dry,
+        _validate_q_continuous_uniform_paint_dry,
+    ),
+    _question_definition(
+        "normal_shaft_acceptance",
+        "Şaft Kabul Olasılığı (Normal)",
+        "Shaft Acceptance (Normal)",
+        _build_q_normal_shaft_acceptance,
+        _validate_q_normal_shaft_acceptance,
+    ),
+    _question_definition(
+        "binomial_normal_approx_quality",
+        "Kalite Hattı (Binoma Normal Yaklaşım)",
+        "Quality Line (Normal Approximation to Binomial)",
+        _build_q_binomial_normal_approx_quality,
+        _validate_q_binomial_normal_approx_quality,
+    ),
+    _question_definition(
+        "exponential_server_fault_wait",
+        "İlk Arıza Kaydı Bekleme (Üssel)",
+        "First Fault Record Wait (Exponential)",
+        _build_q_exponential_server_fault_wait,
+        _validate_q_exponential_server_fault_wait,
+    ),
+    _question_definition(
+        "gamma_second_call_wait",
+        "k. Çağrıya Kadar Bekleme (Gamma)",
+        "Waiting for the kth Call (Gamma)",
+        _build_q_gamma_second_call_wait,
+        _validate_q_gamma_second_call_wait,
+    ),
+    _question_definition(
+        "weibull_pump_lifetime",
+        "Pompa Keçesi Ömrü (Weibull)",
+        "Pump Seal Lifetime (Weibull)",
+        _build_q_weibull_pump_lifetime,
+        _validate_q_weibull_pump_lifetime,
     ),
 )
 

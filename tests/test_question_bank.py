@@ -25,6 +25,20 @@ PERSONALIZED_BUILDERS = {
     "factory_total_probability",
     "factory_bayes_machine3",
     "fabric_expected_value",
+    "discrete_uniform_helpdesk",
+    "bernoulli_message_reply",
+    "binomial_assignment_uploads",
+    "multinomial_feedback_mix",
+    "hypergeom_cookie_box",
+    "geometric_online_payment",
+    "negative_binomial_call_reach",
+    "poisson_courier_calls",
+    "continuous_uniform_paint_dry",
+    "normal_shaft_acceptance",
+    "binomial_normal_approx_quality",
+    "exponential_server_fault_wait",
+    "gamma_second_call_wait",
+    "weibull_pump_lifetime",
 }
 
 PROBABILITY_BOUNDED_BUILDERS = {
@@ -37,6 +51,20 @@ PROBABILITY_BOUNDED_BUILDERS = {
     "airbag_pmf_exact_two",
     "vacuum_pdf_prob",
     "circuit_reliability",
+    "discrete_uniform_helpdesk",
+    "bernoulli_message_reply",
+    "binomial_assignment_uploads",
+    "multinomial_feedback_mix",
+    "hypergeom_cookie_box",
+    "geometric_online_payment",
+    "negative_binomial_call_reach",
+    "poisson_courier_calls",
+    "continuous_uniform_paint_dry",
+    "normal_shaft_acceptance",
+    "binomial_normal_approx_quality",
+    "exponential_server_fault_wait",
+    "gamma_second_call_wait",
+    "weibull_pump_lifetime",
 }
 
 NON_PROBABILITY_BUILDERS = {
