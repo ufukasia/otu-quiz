@@ -81,6 +81,18 @@ SECURE_VISUAL_BUILDERS = {
     "hypergeom_cookie_box",
 }
 
+HIDDEN_DISTRIBUTION_VISUAL_BUILDERS = {
+    "tv_sets_p_ge_1",
+    "software_bug_variance",
+    "airbag_pmf_exact_two",
+    "vacuum_pdf_prob",
+    "fabric_expected_value",
+    "discrete_uniform_helpdesk",
+    "bernoulli_message_reply",
+    "binomial_assignment_uploads",
+    "hypergeom_cookie_box",
+}
+
 
 class QuestionBankInvariantsTest(unittest.TestCase):
     def _generate_question(self, question_id: str, student_id: str, quiz_session: str) -> dict:
@@ -166,6 +178,18 @@ class QuestionBankInvariantsTest(unittest.TestCase):
             self.assertFalse(bool(visual.get("show_y_axis_values", True)), msg=f"{question_id}: y-axis values must be hidden")
             if "highlight_x" in visual:
                 self.assertFalse(bool(visual.get("show_highlight", True)), msg=f"{question_id}: highlight must be hidden")
+
+    def test_distribution_questions_with_visuals_are_hidden_in_ui(self) -> None:
+        for question_id in HIDDEN_DISTRIBUTION_VISUAL_BUILDERS:
+            question = self._generate_question(question_id, STUDENTS[0], SESSIONS[0])
+            self.assertTrue(bool(question.get("hide_visual")), msg=f"{question_id}: plot should be hidden in UI")
+
+    def test_hidden_pmf_questions_do_not_reference_missing_tables(self) -> None:
+        for question_id in {"software_bug_variance", "fabric_expected_value"}:
+            question = self._generate_question(question_id, STUDENTS[0], SESSIONS[0])
+            text = str(question.get("text", "")).lower()
+            self.assertNotIn("table below", text, msg=f"{question_id}: text should not mention a hidden table")
+            self.assertNotIn("tablosu aşağıda", text, msg=f"{question_id}: text should not mention a hidden table")
 
 
 if __name__ == "__main__":

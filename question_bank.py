@@ -167,6 +167,10 @@ def _weights_to_probabilities(weights: tuple[int, ...]) -> list[float]:
     return [weight / total for weight in weights]
 
 
+def _format_probability_pairs(x_values: list[int], p_values: list[float]) -> str:
+    return ", ".join(f"P(X={x})={p:.3f}" for x, p in zip(x_values, p_values))
+
+
 def _standard_normal_cdf(z: float) -> float:
     return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
@@ -385,6 +389,7 @@ def _build_q_tv_sets_p_ge_1(r: random.Random, is_en: bool, tolerance: float) -> 
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,
@@ -408,20 +413,22 @@ def _build_q_software_bug_variance(r: random.Random, is_en: bool, tolerance: flo
     ex = sum(x * p for x, p in probs)
     ex2 = sum((x**2) * p for x, p in probs)
     answer = ex2 - ex * ex
+    pmf_text = _format_probability_pairs(x_values, p_values)
     return {
         "title": "Software Error Analysis - Variance" if is_en else "Yazılım Hata Analizi - Varyans",
         "text": (
             (
-                f"The PMF table below presents the distribution of software bugs (X) detected by the testing team in a {code_lines}-line code module.\n"
+                f"In a {code_lines}-line software module, the bug-count distribution is: {pmf_text}.\n"
                 "Using the formula Var(X)=E(X^2)-[E(X)]^2, calculate the variance Var(X)."
             )
             if is_en
             else (
-                f"{code_lines} satırlık bir yazılım modülünde test ekibi tarafından tespit edilen yazılım hatası (bug) sayısı X'in PMF tablosu aşağıda verilmiştir.\n"
+                f"{code_lines} satırlık bir yazılım modülünde test ekibinin bulduğu hata sayısı için olasılıklar şöyledir: {pmf_text}.\n"
                 "Var(X)=E(X^2)-[E(X)]^2 formülünü kullanarak hataların varyansını hesaplayınız."
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "tolerance": tolerance,
         "visual": {
             "kind": "pmf_table",
@@ -518,6 +525,7 @@ def _build_q_airbag_pmf_exact_two(r: random.Random, is_en: bool, tolerance: floa
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,
@@ -555,6 +563,7 @@ def _build_q_vacuum_pdf_prob(r: random.Random, is_en: bool, tolerance: float) ->
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,
@@ -604,20 +613,22 @@ def _build_q_circuit_reliability(r: random.Random, is_en: bool, tolerance: float
 def _build_q_fabric_expected_value(r: random.Random, is_en: bool, tolerance: float) -> Question:
     fabric_length, x_values, p_values = _fabric_defect_distribution(r)
     answer = sum(x * p for x, p in zip(x_values, p_values))
+    pmf_text = _format_probability_pairs(x_values, p_values)
     return {
         "title": "Fabric Defect Count - Expected Value" if is_en else "Kumaş Kusur Sayısı - Beklenen Değer",
         "text": (
             (
-                f"The table below shows the PMF for the number of defects (X) found in a {fabric_length}m roll of synthetic fabric produced in a textile mill.\n"
+                f"For a {fabric_length}m roll of synthetic fabric, the defect-count distribution is: {pmf_text}.\n"
                 "Calculate the expected value E(X) for the defect count based on this given distribution."
             )
             if is_en
             else (
-                f"Bir tekstil fabrikasında üretilen {fabric_length} metre uzunluğundaki sentetik kumaş topunda rastlanan defolu iplik veya ilmek gibi kusur sayısı X'in PMF tablosu aşağıda verilmiştir.\n"
+                f"{fabric_length} metre uzunluğundaki bir sentetik kumaş topunda görülen kusur sayısı için olasılıklar şöyledir: {pmf_text}.\n"
                 "Bu olasılık dağılımını kullanarak bir top kumaşta çıkması beklenen ortalama kusur sayısını, yani beklenen değeri E(X) hesaplayınız."
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "tolerance": tolerance,
         "visual": {
             "kind": "pmf_table",
@@ -654,6 +665,7 @@ def _build_q_discrete_uniform_helpdesk(r: random.Random, is_en: bool, tolerance:
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,
@@ -686,6 +698,7 @@ def _build_q_bernoulli_message_reply(r: random.Random, is_en: bool, tolerance: f
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,
@@ -729,6 +742,7 @@ def _build_q_binomial_assignment_uploads(r: random.Random, is_en: bool, toleranc
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,
@@ -825,6 +839,7 @@ def _build_q_hypergeom_cookie_box(r: random.Random, is_en: bool, tolerance: floa
             )
         ),
         "answer": answer,
+        "hide_visual": True,
         "answer_min": 0.0,
         "answer_max": 1.0,
         "tolerance": tolerance,

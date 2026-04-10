@@ -2086,6 +2086,8 @@ def _render_question_visual_from_visual(visual: dict[str, Any] | None):
 
 def render_question_visual(question: dict[str, Any]):
     """Soruya göre uygun gorsel olusturur."""
+    if bool(question.get("hide_visual")):
+        return None
     visual = question.get("visual")
     if not isinstance(visual, dict):
         return None
@@ -2860,6 +2862,8 @@ def render_question_card(
 
 def render_question_visual_media(question: dict[str, Any]) -> None:
     """Soru gorselini cache'lenmis PNG olarak gosterir."""
+    if bool(question.get("hide_visual")):
+        return
     visual = question.get("visual")
     if not isinstance(visual, dict):
         return
