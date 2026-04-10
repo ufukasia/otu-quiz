@@ -389,13 +389,15 @@ def _build_q_tv_sets_p_ge_1(r: random.Random, is_en: bool, tolerance: float) -> 
         "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
-            "kind": "pmf_table",
+            "kind": "pmf_bar",
             "x_values": x_values,
             "p_values": probs,
             "population_size": total,
             "defective_count": defective,
             "draw_count": draw,
-            "caption": "PMF: X=arızalı TV sayısı" if not is_en else "PMF: X=number of defective TVs",
+            "caption": "Dağılım Şekli" if not is_en else "Distribution Shape",
+            "show_prob_labels": False,
+            "show_y_axis_values": False,
         },
     }
 
@@ -526,7 +528,10 @@ def _build_q_airbag_pmf_exact_two(r: random.Random, is_en: bool, tolerance: floa
             "highlight_x": k,
             "trial_count": n,
             "success_prob": p,
-            "caption": "Binom PMF" if is_en else "Binom PMF",
+            "caption": "Dağılım Şekli" if not is_en else "Distribution Shape",
+            "show_prob_labels": False,
+            "show_y_axis_values": False,
+            "show_highlight": False,
         },
     }
 
@@ -657,7 +662,9 @@ def _build_q_discrete_uniform_helpdesk(r: random.Random, is_en: bool, tolerance:
             "kind": "pmf_bar",
             "x_values": x_values,
             "p_values": p_values,
-            "caption": "Ayrık uniform PMF" if not is_en else "Discrete uniform PMF",
+            "caption": "Dağılım Şekli" if not is_en else "Distribution Shape",
+            "show_prob_labels": False,
+            "show_y_axis_values": False,
         },
     }
 
@@ -686,7 +693,9 @@ def _build_q_bernoulli_message_reply(r: random.Random, is_en: bool, tolerance: f
             "kind": "pmf_bar",
             "x_values": [0, 1],
             "p_values": [1 - success_prob, success_prob],
-            "caption": "Bernoulli PMF" if not is_en else "Bernoulli PMF",
+            "caption": "Dağılım Şekli" if not is_en else "Distribution Shape",
+            "show_prob_labels": False,
+            "show_y_axis_values": False,
         },
     }
 
@@ -730,7 +739,10 @@ def _build_q_binomial_assignment_uploads(r: random.Random, is_en: bool, toleranc
             "highlight_x": target_successes,
             "trial_count": trial_count,
             "success_prob": success_prob,
-            "caption": "Binom PMF" if not is_en else "Binomial PMF",
+            "caption": "Dağılım Şekli" if not is_en else "Distribution Shape",
+            "show_prob_labels": False,
+            "show_y_axis_values": False,
+            "show_highlight": False,
         },
     }
 
@@ -817,14 +829,17 @@ def _build_q_hypergeom_cookie_box(r: random.Random, is_en: bool, tolerance: floa
         "answer_max": 1.0,
         "tolerance": tolerance,
         "visual": {
-            "kind": "pmf_table",
+            "kind": "pmf_bar",
             "x_values": x_values,
             "p_values": p_values,
             "population_size": population_size,
             "success_count": success_count,
             "draw_count": draw_count,
             "highlight_x": target_successes,
-            "caption": "Hipergeometrik PMF" if not is_en else "Hypergeometric PMF",
+            "caption": "Dağılım Şekli" if not is_en else "Distribution Shape",
+            "show_prob_labels": False,
+            "show_y_axis_values": False,
+            "show_highlight": False,
         },
     }
 

@@ -72,6 +72,15 @@ NON_PROBABILITY_BUILDERS = {
     "fabric_expected_value",
 }
 
+SECURE_VISUAL_BUILDERS = {
+    "tv_sets_p_ge_1",
+    "airbag_pmf_exact_two",
+    "discrete_uniform_helpdesk",
+    "bernoulli_message_reply",
+    "binomial_assignment_uploads",
+    "hypergeom_cookie_box",
+}
+
 
 class QuestionBankInvariantsTest(unittest.TestCase):
     def _generate_question(self, question_id: str, student_id: str, quiz_session: str) -> dict:
@@ -146,6 +155,17 @@ class QuestionBankInvariantsTest(unittest.TestCase):
                 any(answer > 1.0 for answer in answers),
                 msg=f"{question_id}: sampled variants should include an answer above 1.0",
             )
+
+    def test_secure_visual_questions_hide_probability_labels(self) -> None:
+        for question_id in SECURE_VISUAL_BUILDERS:
+            question = self._generate_question(question_id, STUDENTS[0], SESSIONS[0])
+            visual = question.get("visual")
+            self.assertIsInstance(visual, dict, msg=f"{question_id}: visual must be present")
+            self.assertEqual(visual.get("kind"), "pmf_bar", msg=f"{question_id}: secure visual should use pmf_bar")
+            self.assertFalse(bool(visual.get("show_prob_labels", True)), msg=f"{question_id}: bar labels must be hidden")
+            self.assertFalse(bool(visual.get("show_y_axis_values", True)), msg=f"{question_id}: y-axis values must be hidden")
+            if "highlight_x" in visual:
+                self.assertFalse(bool(visual.get("show_highlight", True)), msg=f"{question_id}: highlight must be hidden")
 
 
 if __name__ == "__main__":

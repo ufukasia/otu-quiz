@@ -1888,12 +1888,20 @@ def plot_pmf_table(x_values: list[float], p_values: list[float], caption: str = 
     return fig
 
 
-def plot_pmf_bar(x_values: list[float], p_values: list[float], highlight_x: float | None = None, caption: str = ""):
+def plot_pmf_bar(
+    x_values: list[float],
+    p_values: list[float],
+    highlight_x: float | None = None,
+    caption: str = "",
+    show_prob_labels: bool = True,
+    show_y_axis_values: bool = True,
+    show_highlight: bool = True,
+):
     """Kesikli PMF bar grafigi."""
     fig, ax = _chart_figure(6.4, 3.4)
     bars = []
     for x, p in zip(x_values, p_values):
-        is_highlight = highlight_x is not None and float(x) == float(highlight_x)
+        is_highlight = show_highlight and highlight_x is not None and float(x) == float(highlight_x)
         color = "#f59e0b" if is_highlight else "#38bdf8"
         bar = ax.bar(float(x), float(p), width=0.7, color=color, edgecolor="#e2e8f0", linewidth=0.9)
         bars.append((bar[0], float(p)))
@@ -1902,20 +1910,22 @@ def plot_pmf_bar(x_values: list[float], p_values: list[float], highlight_x: floa
     ax.set_ylim(0, y_max)
     ax.set_xticks([float(x) for x in x_values])
     ax.set_xlabel("x", color="#cbd5e1")
-    ax.set_ylabel("f(x)", color="#cbd5e1")
+    ax.set_ylabel("f(x)" if show_y_axis_values else "", color="#cbd5e1")
     ax.grid(axis="y", color="#334155", linestyle="--", linewidth=0.7, alpha=0.6)
+    ax.tick_params(axis="y", colors="#cbd5e1", labelleft=show_y_axis_values)
     if caption:
         ax.set_title(caption, color="#f8fafc", fontsize=10, pad=8)
 
-    for bar, p in bars:
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            p + y_max * 0.03,
-            f"{p:.3f}",
-            color="#e2e8f0",
-            fontsize=8,
-            ha="center",
-        )
+    if show_prob_labels:
+        for bar, p in bars:
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                p + y_max * 0.03,
+                f"{p:.3f}",
+                color="#e2e8f0",
+                fontsize=8,
+                ha="center",
+            )
     return fig
 
 
@@ -2063,6 +2073,9 @@ def _render_question_visual_from_visual(visual: dict[str, Any] | None):
             list(visual.get("p_values", [])),
             highlight_x=float(highlight) if highlight is not None else None,
             caption=str(visual.get("caption", "")),
+            show_prob_labels=bool(visual.get("show_prob_labels", True)),
+            show_y_axis_values=bool(visual.get("show_y_axis_values", True)),
+            show_highlight=bool(visual.get("show_highlight", True)),
         )
     if kind == "piecewise_pdf_vacuum":
         return plot_piecewise_pdf_vacuum(float(visual.get("threshold", 1.2)))
